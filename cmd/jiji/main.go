@@ -5,6 +5,9 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/m-oehme/jiji/internal/app"
 	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/version"
@@ -46,7 +49,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Validate connection with a simple API call
-	_ = client
-	fmt.Printf("Connected to %s\n", cfg.Jira.Host)
+	m := app.New(cfg, client)
+	p := tea.NewProgram(m)
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
