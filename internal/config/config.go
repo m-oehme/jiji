@@ -2,16 +2,20 @@
 package config
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/knadh/koanf/v2"
 )
+
+//go:embed default.toml
+var defaultConfigTOML []byte
 
 // CLI holds Jira connection settings parsed from CLI flags / env vars.
 // Parsed by kong in main.go.
@@ -123,28 +127,29 @@ func configFilePath() string {
 }
 
 // Load reads the config file and returns a Config with defaults applied.
-// If no config file exists, a default one is created.
 func Load() (*Config, error) {
-	cfg := defaults()
-
 	if err := ensureXDGDirs(); err != nil {
 		return nil, fmt.Errorf("creating XDG directories: %w", err)
 	}
 
-	path := configFilePath()
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := writeDefaultConfig(path); err != nil {
-			return nil, fmt.Errorf("writing default config: %w", err)
-		}
-		return cfg, nil
+	k := koanf.New(".")
+
+	// Load embedded defaults as base
+	if err := k.Load(rawbytes.Provider(defaultConfigTOML), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("parsing default config: %w", err)
 	}
 
-	k := koanf.New(".")
-	if err := k.Load(file.Provider(path), toml.Parser()); err != nil {
-		return nil, fmt.Errorf("loading config file %s: %w", path, err)
+	// Overlay user config if it exists
+	path := configFilePath()
+	if _, err := os.Stat(path); err == nil {
+		if err := k.Load(file.Provider(path), toml.Parser()); err != nil {
+			return nil, fmt.Errorf("loading config file %s: %w", path, err)
+		}
 	}
+
+	cfg := &Config{}
 	if err := k.Unmarshal("", cfg); err != nil {
-		return nil, fmt.Errorf("parsing config file: %w", err)
+		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
 	if err := validate(cfg); err != nil {
@@ -154,28 +159,17 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// defaults returns a Config populated with default values.
-func defaults() *Config {
-	return &Config{
-		UI: UIConfig{
-			Theme:        "default",
-			ListRatio:    30,
-			DetailLayout: "stacked",
-			Editor:       "",
-			Fields: FieldsConfig{
-				List: []string{"key", "summary", "assignee", "priority"},
-			},
-		},
-		Tabs: []TabConfig{
-			{Name: "All Issues", JQL: "ORDER BY updated DESC"},
-		},
-		Theme: DefaultTheme(),
-		Cache: CacheConfig{
-			IssueCapacity:   50,
-			CommentCapacity: 20,
-			PrefetchCount:   10,
-		},
+// parseDefaults returns a Config populated from the embedded default.toml.
+func parseDefaults() (*Config, error) {
+	k := koanf.New(".")
+	if err := k.Load(rawbytes.Provider(defaultConfigTOML), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("parsing default config: %w", err)
 	}
+	cfg := &Config{}
+	if err := k.Unmarshal("", cfg); err != nil {
+		return nil, fmt.Errorf("parsing config: %w", err)
+	}
+	return cfg, nil
 }
 
 // Editor returns the configured editor, falling back to $EDITOR, then "vi".
@@ -242,49 +236,4 @@ func ensureXDGDirs() error {
 		}
 	}
 	return nil
-}
-
-// writeDefaultConfig writes a minimal config file with commented-out defaults.
-func writeDefaultConfig(path string) error {
-	content := strings.TrimSpace(`
-# Jiji configuration file
-# Uncomment and modify settings as needed.
-
-# [ui]
-# theme = "default"
-# list_ratio = 30
-# detail_layout = "stacked"   # "stacked" or "side-by-side"
-# editor = ""                  # Falls back to $EDITOR, then "vi"
-
-# [ui.fields]
-# list = ["key", "summary", "assignee", "priority"]
-
-# [[tabs]]
-# name = "All Issues"
-# jql = "ORDER BY updated DESC"
-
-# [keybindings]
-# up = ["k", "up"]
-# down = ["j", "down"]
-# tab_next = ["l", "right"]
-# tab_prev = ["h", "left"]
-# pane_switch = ["tab"]
-
-# [theme]
-# primary = "#7C3AED"
-# secondary = "#06B6D4"
-# border = "#404040"
-# border_focused = "#7C3AED"
-# text = "#E4E4E7"
-# text_dim = "#71717A"
-# success = "#22C55E"
-# warning = "#F59E0B"
-# error = "#EF4444"
-
-# [cache]
-# issue_capacity = 50
-# comment_capacity = 20
-# prefetch_count = 10
-`) + "\n"
-	return os.WriteFile(path, []byte(content), 0o644)
 }

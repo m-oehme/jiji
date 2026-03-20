@@ -6,8 +6,17 @@ import (
 	"testing"
 )
 
+func testDefaults(t *testing.T) *Config {
+	t.Helper()
+	cfg, err := parseDefaults()
+	if err != nil {
+		t.Fatalf("parseDefaults: %v", err)
+	}
+	return cfg
+}
+
 func TestDefaults(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 
 	if cfg.UI.ListRatio != 30 {
 		t.Errorf("expected list_ratio 30, got %d", cfg.UI.ListRatio)
@@ -27,10 +36,17 @@ func TestDefaults(t *testing.T) {
 	if cfg.Theme.Primary != "#7C3AED" {
 		t.Errorf("expected theme.primary #7C3AED, got %q", cfg.Theme.Primary)
 	}
+	// Keybinding defaults should be populated (was a bug before embed)
+	if len(cfg.Keys.Up) == 0 {
+		t.Error("expected keybinding defaults for 'up' to be populated")
+	}
+	if len(cfg.Keys.Quit) == 0 {
+		t.Error("expected keybinding defaults for 'quit' to be populated")
+	}
 }
 
 func TestValidate_ValidConfig(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	if err := validate(cfg); err != nil {
 		t.Errorf("defaults should be valid: %v", err)
 	}
@@ -48,7 +64,7 @@ func TestValidate_InvalidListRatio(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := defaults()
+			cfg := testDefaults(t)
 			cfg.UI.ListRatio = tt.ratio
 			if err := validate(cfg); err == nil {
 				t.Error("expected validation error for invalid list_ratio")
@@ -58,7 +74,7 @@ func TestValidate_InvalidListRatio(t *testing.T) {
 }
 
 func TestValidate_InvalidDetailLayout(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	cfg.UI.DetailLayout = "invalid"
 	if err := validate(cfg); err == nil {
 		t.Error("expected validation error for invalid detail_layout")
@@ -66,7 +82,7 @@ func TestValidate_InvalidDetailLayout(t *testing.T) {
 }
 
 func TestValidate_TooManyTabs(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	cfg.Tabs = make([]TabConfig, 10)
 	for i := range cfg.Tabs {
 		cfg.Tabs[i] = TabConfig{Name: "Tab", JQL: "ORDER BY updated DESC"}
@@ -77,7 +93,7 @@ func TestValidate_TooManyTabs(t *testing.T) {
 }
 
 func TestValidate_EmptyTabsFallback(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	cfg.Tabs = nil
 	if err := validate(cfg); err != nil {
 		t.Errorf("empty tabs should fallback to default: %v", err)
@@ -88,7 +104,7 @@ func TestValidate_EmptyTabsFallback(t *testing.T) {
 }
 
 func TestValidate_InvalidThemeColor(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	cfg.Theme.Primary = "not-a-color"
 	if err := validate(cfg); err == nil {
 		t.Error("expected validation error for invalid hex color")
@@ -96,7 +112,7 @@ func TestValidate_InvalidThemeColor(t *testing.T) {
 }
 
 func TestValidate_ValidThemeColors(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 	cfg.Theme.Primary = "#AABBCC"
 	cfg.Theme.Error = "#ff0000"
 	if err := validate(cfg); err != nil {
@@ -105,7 +121,7 @@ func TestValidate_ValidThemeColors(t *testing.T) {
 }
 
 func TestEditor_Fallback(t *testing.T) {
-	cfg := defaults()
+	cfg := testDefaults(t)
 
 	// Explicit editor in config
 	cfg.UI.Editor = "nvim"
@@ -197,7 +213,7 @@ issue_capacity = 100
 	}
 }
 
-func TestLoad_CreatesDefaultConfig(t *testing.T) {
+func TestLoad_NoUserConfig(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("XDG_DATA_HOME", filepath.Join(dir, "data"))
@@ -213,9 +229,11 @@ func TestLoad_CreatesDefaultConfig(t *testing.T) {
 		t.Errorf("expected default list_ratio 30, got %d", cfg.UI.ListRatio)
 	}
 
-	// Should have created the config file
-	path := filepath.Join(dir, "jiji", "config.toml")
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Error("expected config file to be created on first run")
+	// Keybinding defaults should be populated
+	if len(cfg.Keys.Up) != 2 || cfg.Keys.Up[0] != "k" {
+		t.Errorf("expected keybinding up=[k, up], got %v", cfg.Keys.Up)
+	}
+	if len(cfg.Keys.Quit) != 1 || cfg.Keys.Quit[0] != "q" {
+		t.Errorf("expected keybinding quit=[q], got %v", cfg.Keys.Quit)
 	}
 }
