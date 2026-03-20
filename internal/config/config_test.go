@@ -27,8 +27,8 @@ func TestDefaults(t *testing.T) {
 	if len(cfg.Tabs) != 1 {
 		t.Fatalf("expected 1 default tab, got %d", len(cfg.Tabs))
 	}
-	if cfg.Tabs[0].Name != "All Issues" {
-		t.Errorf("expected default tab name 'All Issues', got %q", cfg.Tabs[0].Name)
+	if cfg.Tabs[0].Name != "My Issues" {
+		t.Errorf("expected default tab name 'My Issues', got %q", cfg.Tabs[0].Name)
 	}
 	if cfg.Cache.IssueCapacity != 50 {
 		t.Errorf("expected cache.issue_capacity 50, got %d", cfg.Cache.IssueCapacity)

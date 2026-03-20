@@ -24,6 +24,7 @@ type CLI struct {
 	Email   string `kong:"help='Jira user email',env='JIJI_JIRA_EMAIL',short='e'"`
 	Token   string `kong:"help='Jira API token',env='JIJI_JIRA_TOKEN',short='t'"`
 	Version bool   `kong:"help='Print version and exit',short='v'"`
+	Debug   bool   `kong:"help='Write debug logs to ~/.cache/jiji/debug.log',short='d'"`
 }
 
 // ValidateConnection checks that all required Jira connection fields are set.
@@ -197,7 +198,7 @@ func validate(cfg *Config) error {
 	}
 
 	if len(cfg.Tabs) == 0 {
-		cfg.Tabs = []TabConfig{{Name: "All Issues", JQL: "ORDER BY updated DESC"}}
+		cfg.Tabs = []TabConfig{{Name: "My Issues", JQL: "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC"}}
 	}
 	if len(cfg.Tabs) > 9 {
 		return fmt.Errorf("config: at most 9 tabs allowed, got %d", len(cfg.Tabs))
@@ -223,12 +224,17 @@ func validate(cfg *Config) error {
 	return nil
 }
 
+// CacheDir returns the jiji cache directory path.
+func CacheDir() string {
+	return filepath.Join(xdgDir("XDG_CACHE_HOME", ".cache"), "jiji")
+}
+
 // ensureXDGDirs creates the XDG directories for jiji.
 func ensureXDGDirs() error {
 	dirs := []string{
-		filepath.Join(xdgDir("XDG_CONFIG_HOME", ".config"), "jiji"),
+		configDir(),
 		filepath.Join(xdgDir("XDG_DATA_HOME", filepath.Join(".local", "share")), "jiji"),
-		filepath.Join(xdgDir("XDG_CACHE_HOME", ".cache"), "jiji"),
+		CacheDir(),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0o755); err != nil {

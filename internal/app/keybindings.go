@@ -11,6 +11,12 @@ import (
 // handleKey routes key presses per ADR-009 priority.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
+	m.log.Debug("key press", "key", key, "pane", m.focus.ActivePane(), "overlay", m.focus.HasOverlay(), "jql_focused", m.issueList.IsJQLFocused())
+
+	// JQL input focused — route all keys to text input except Enter/Esc
+	if m.issueList.IsJQLFocused() {
+		return m.handleJQLKey(msg)
+	}
 
 	// 3. Overlay active — route to overlay
 	if m.focus.HasOverlay() {
@@ -25,7 +31,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// 5. Delegate to active pane
 	switch m.focus.ActivePane() {
 	case common.PaneIssueList:
-		return m.handleIssueListKey(key)
+		return m.handleIssueListKey(key, msg)
 	case common.PaneDetail:
 		return m.handleDetailKey(key)
 	}
@@ -94,8 +100,36 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 	return m, nil, false
 }
 
+// handleJQLKey handles keys when the JQL input is focused.
+// Enter submits, Esc cancels, everything else routes to the text input.
+func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	switch {
+	case matchKey(key, m.cfg.Keys.Confirm) || key == "enter":
+		jql := m.issueList.JQLValue()
+		m.issueList.UnfocusJQL()
+		m.statusBar.SetLoading(true)
+		return m, m.searchIssues(jql, m.tabs.Active())
+
+	case matchKey(key, m.cfg.Keys.Cancel) || key == "esc":
+		m.issueList.UnfocusJQL()
+		return m, nil
+	}
+
+	// Delegate to textinput
+	cmd := m.issueList.UpdateJQL(msg)
+	return m, cmd
+}
+
 // handleIssueListKey handles keys when the issue list pane is active.
-func (m Model) handleIssueListKey(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleIssueListKey(key string, msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	// Focus JQL input
+	if matchKey(key, m.cfg.Keys.FocusJQL) {
+		cmd := m.issueList.FocusJQL()
+		return m, cmd
+	}
+
 	prevIdx := m.issueList.SelectedIndex()
 
 	switch {
@@ -109,12 +143,16 @@ func (m Model) handleIssueListKey(key string) (tea.Model, tea.Cmd) {
 		m.issueList.JumpToBottom()
 	}
 
-	// Update detail if selection changed
+	// Auto-load detail if selection changed (ADR-005)
 	if m.issueList.SelectedIndex() != prevIdx {
 		if sel := m.issueList.SelectedIssue(); sel != nil {
-			m.detail.SetIssue(sel)
-			m.detail.SetComments(mockComments())
 			m.statusBar.SetCurrentIssue(sel.Key)
+			if m.client != nil {
+				return m, tea.Batch(
+					m.loadIssueDetail(sel.Key),
+					m.loadComments(sel.Key),
+				)
+			}
 		}
 	}
 

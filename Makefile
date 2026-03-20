@@ -11,7 +11,7 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o bin/jiji ./cmd/jiji
 
 run:
-	$(if $(wildcard .env),set -a && . ./.env && set +a &&,) go run -ldflags "$(LDFLAGS)" ./cmd/jiji
+	$(if $(wildcard .env),set -a && . ./.env && set +a &&,) go run -ldflags "$(LDFLAGS)" ./cmd/jiji --debug
 
 lint:
 	golangci-lint run

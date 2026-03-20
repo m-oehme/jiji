@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	tea "charm.land/bubbletea/v2"
@@ -49,7 +51,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	m := app.New(cfg, client)
+	var logger *slog.Logger
+	if cli.Debug {
+		logPath := filepath.Join(config.CacheDir(), "debug.log")
+		f, err := os.Create(logPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating debug log: %s\n", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		logger = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger.Info("debug logging enabled", "path", logPath)
+	} else {
+		logger = slog.New(slog.DiscardHandler)
+	}
+
+	m := app.New(cfg, client, logger)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

@@ -11,12 +11,12 @@ editor = ""                       # External editor. Falls back to $EDITOR, then
 list = ["key", "summary", "assignee", "priority"]
 
 [[tabs]]
-name = "All Issues"
-jql = "ORDER BY updated DESC"
+name = "My Issues"
+jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC"
 
 # [[tabs]]
-# name = "My Issues"
-# jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC"
+# name = "All Issues"
+# jql = "project = MYPROJ ORDER BY updated DESC"
 
 # [[tabs]]
 # name = "Sprint"

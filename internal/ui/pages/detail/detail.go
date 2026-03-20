@@ -73,20 +73,22 @@ func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 
-	innerW, innerH := common.InnerSize(width, height, true)
-	vpH := innerH - metadataBannerHeight
+	frameW, frameH := m.common.Styles.Border.GetFrameSize()
+	contentW := width - frameW
+	contentH := height - frameH
+	vpH := contentH - metadataBannerHeight
 	if vpH < 1 {
 		vpH = 1
 	}
 
 	if !m.ready {
 		m.viewport = viewport.New(
-			viewport.WithWidth(innerW),
+			viewport.WithWidth(contentW),
 			viewport.WithHeight(vpH),
 		)
 		m.ready = true
 	} else {
-		m.viewport.SetWidth(innerW)
+		m.viewport.SetWidth(contentW)
 		m.viewport.SetHeight(vpH)
 	}
 
@@ -113,25 +115,34 @@ func (m Model) View() string {
 		borderStyle = m.common.Styles.BorderFocused
 	}
 
-	innerW, innerH := common.InnerSize(m.width, m.height, true)
-	if innerW <= 0 || innerH <= 0 {
-		return borderStyle.Width(m.width - 2).Height(m.height - 2).Render("")
+	// In lipgloss v2, Width/Height set the TOTAL rendered size including
+	// borders/padding. Content area = total - frame.
+	frameW, frameH := borderStyle.GetFrameSize()
+	contentW := m.width - frameW
+	contentH := m.height - frameH
+	if contentW <= 0 || contentH <= 0 {
+		return borderStyle.Width(m.width).Height(m.height).Render("")
 	}
 
-	meta := renderMetadata(m.issue, innerW, m.common.Styles)
+	meta := renderMetadata(m.issue, contentW, m.common.Styles)
 	vpContent := m.viewport.View()
 
 	// Stack metadata + viewport content
 	body := meta + "\n" + vpContent
 
-	// Pad/truncate to fit inner dimensions
+	// Pad/truncate to fit content dimensions
 	lines := strings.Split(body, "\n")
-	for len(lines) < innerH {
-		lines = append(lines, strings.Repeat(" ", innerW))
+	for len(lines) < contentH {
+		lines = append(lines, strings.Repeat(" ", contentW))
 	}
-	if len(lines) > innerH {
-		lines = lines[:innerH]
+	if len(lines) > contentH {
+		lines = lines[:contentH]
 	}
 
-	return borderStyle.Width(innerW).Height(innerH).Render(strings.Join(lines, "\n"))
+	return borderStyle.
+		Width(m.width).
+		Height(m.height).
+		MaxWidth(m.width).
+		MaxHeight(m.height).
+		Render(strings.Join(lines, "\n"))
 }

@@ -2,6 +2,11 @@
 package app
 
 import (
+	"fmt"
+	"log/slog"
+	"strings"
+	"time"
+
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
@@ -16,10 +21,14 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
+// errorDisplayDuration is how long error messages show before auto-clearing.
+const errorDisplayDuration = 5 * time.Second
+
 // Model is the root tea.Model composing all UI elements (ADR-002, ADR-009, ADR-010).
 type Model struct {
 	cfg    *config.Config
-	client jira.Client // not used in Phase 2
+	client jira.Client
+	log    *slog.Logger
 
 	focus  *common.Focus
 	styles *styles.Styles
@@ -33,7 +42,7 @@ type Model struct {
 	statusBar statusbar.Model
 	help      help.Model
 
-	// Pages (Phase 2: single tab)
+	// Pages
 	issueList issuelist.Model
 	detail    detail.Model
 
@@ -42,7 +51,7 @@ type Model struct {
 }
 
 // New creates the root app model.
-func New(cfg *config.Config, client jira.Client) Model {
+func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 	s := styles.NewStyles(cfg.Theme)
 	f := common.NewFocus()
 
@@ -60,6 +69,7 @@ func New(cfg *config.Config, client jira.Client) Model {
 	m := Model{
 		cfg:          cfg,
 		client:       client,
+		log:          log,
 		focus:        f,
 		styles:       s,
 		listCommon:   listCommon,
@@ -71,29 +81,28 @@ func New(cfg *config.Config, client jira.Client) Model {
 		detail:       detail.New(detailCommon),
 	}
 
-	// Load mock data
-	issues := mockIssues()
-	m.issueList.SetItems(issues)
 	m.issueList.SetJQL(cfg.Tabs[0].JQL)
-	m.statusBar.SetIssueCount(len(issues))
-
-	// Show first issue in detail
-	if sel := m.issueList.SelectedIssue(); sel != nil {
-		m.detail.SetIssue(sel)
-		m.detail.SetComments(mockComments())
-		m.statusBar.SetCurrentIssue(sel.Key)
-	}
 
 	return m
 }
 
-// Init returns the initial command — request terminal size.
+// Init returns initial commands — request terminal size and fire first search.
 func (m Model) Init() tea.Cmd {
-	return func() tea.Msg { return tea.RequestWindowSize() }
+	m.log.Info("starting jiji", "tabs", len(m.cfg.Tabs))
+	m.statusBar.SetLoading(true)
+	cmds := []tea.Cmd{
+		func() tea.Msg { return tea.RequestWindowSize() },
+	}
+	if m.client != nil {
+		cmds = append(cmds, m.searchIssues(m.cfg.Tabs[0].JQL, 0))
+	}
+	return tea.Batch(cmds...)
 }
 
-// Update handles messages per the routing priority from ADR-009.
+// Update handles messages per the routing priority from ADR-009 and async results (ADR-010).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	m.log.Debug("msg received", "type", fmt.Sprintf("%T", msg))
+
 	switch msg := msg.(type) {
 	// 1. Ctrl+C — always quit
 	case tea.KeyPressMsg:
@@ -105,9 +114,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// 2. Window resize
 	case tea.WindowSizeMsg:
+		m.log.Debug("window resize", "width", msg.Width, "height", msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
 		m.recalcLayout()
+		return m, nil
+
+	// Async API results (ADR-010)
+	case SearchResultMsg:
+		m.log.Info("search results", "count", len(msg.Issues), "tab", msg.TabIndex)
+		m.issueList.SetItems(msg.Issues)
+		m.statusBar.SetLoading(false)
+		m.statusBar.SetIssueCount(len(msg.Issues))
+		// Auto-select first issue and load detail
+		if len(msg.Issues) > 0 {
+			m.issueList.JumpToTop()
+			issue := m.issueList.SelectedIssue()
+			m.statusBar.SetCurrentIssue(issue.Key)
+			return m, tea.Batch(
+				m.loadIssueDetail(issue.Key),
+				m.loadComments(issue.Key),
+			)
+		}
+		return m, nil
+
+	case IssueDetailMsg:
+		m.log.Info("issue detail loaded", "key", msg.Issue.Key)
+		m.detail.SetIssue(msg.Issue)
+		m.statusBar.SetLoading(false)
+		return m, nil
+
+	case CommentsMsg:
+		m.log.Info("comments loaded", "key", msg.IssueKey, "count", len(msg.Comments))
+		m.detail.SetComments(msg.Comments)
+		return m, nil
+
+	case ErrorMsg:
+		m.log.Error("api error", "context", msg.Context, "err", msg.Err)
+		m.statusBar.SetError(fmt.Errorf("%s: %w", msg.Context, msg.Err))
+		m.statusBar.SetLoading(false)
+		return m, clearErrorAfter(errorDisplayDuration)
+
+	case clearErrorMsg:
+		m.statusBar.ClearError()
 		return m, nil
 
 	// 3-5. Key routing
@@ -132,6 +181,13 @@ func (m Model) View() tea.View {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 	statusBar := m.statusBar.View()
 
+	// Clip body to its allocated height. Panes use MaxHeight internally,
+	// but JoinHorizontal can pad to the tallest pane.
+	bodyH := m.height - tabBarHeight - statusBarHeight
+	if bodyLines := strings.Split(body, "\n"); len(bodyLines) > bodyH {
+		body = strings.Join(bodyLines[:bodyH], "\n")
+	}
+
 	content := lipgloss.JoinVertical(lipgloss.Left, tabBar, body, statusBar)
 
 	// Overlay on top if active
@@ -144,20 +200,22 @@ func (m Model) View() tea.View {
 	return v
 }
 
+// Fixed heights for tab bar and status bar.
+const (
+	tabBarHeight   = 1
+	statusBarHeight = 1
+)
+
 // recalcLayout distributes available space to all components.
 func (m *Model) recalcLayout() {
-	// Tab bar: 1 line at top
-	tabH := 1
-	// Status bar: 1 line at bottom
-	statusH := 1
-	// Body gets the rest
-	bodyH := m.height - tabH - statusH
+	// Body gets everything except the fixed tab bar and status bar.
+	bodyH := m.height - tabBarHeight - statusBarHeight
 	if bodyH < 1 {
 		bodyH = 1
 	}
 
-	m.tabs.SetSize(m.width, tabH)
-	m.statusBar.SetSize(m.width, statusH)
+	m.tabs.SetSize(m.width, tabBarHeight)
+	m.statusBar.SetSize(m.width, statusBarHeight)
 	m.help.SetSize(m.width, m.height)
 
 	// Split body into left (issue list) and right (detail)

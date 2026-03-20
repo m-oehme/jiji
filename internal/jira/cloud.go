@@ -393,6 +393,12 @@ func wrapError(resp *models.ResponseScheme, err error) error {
 	}
 
 	switch resp.Code {
+	case http.StatusBadRequest:
+		body := strings.TrimSpace(resp.Bytes.String())
+		if body != "" {
+			return fmt.Errorf("bad request (%s %s): %s", resp.Method, resp.Endpoint, body)
+		}
+		return fmt.Errorf("bad request (%s %s): %w", resp.Method, resp.Endpoint, err)
 	case http.StatusUnauthorized:
 		return fmt.Errorf("authentication failed, check --email and --token: %w", err)
 	case http.StatusForbidden:
