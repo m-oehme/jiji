@@ -3,9 +3,9 @@
 
 [ui]
 theme = "default"
-list_ratio = 30                   # Percentage width for issue list pane (1-99)
-detail_layout = "stacked"         # "stacked" or "side-by-side"
-editor = ""                       # External editor. Falls back to $EDITOR, then "vi"
+list_ratio = 40           # Percentage width for issue list pane (1-99)
+detail_layout = "stacked" # "stacked" or "side-by-side"
+editor = ""               # External editor. Falls back to $EDITOR, then "vi"
 
 [ui.fields]
 list = ["key", "summary", "assignee", "priority"]

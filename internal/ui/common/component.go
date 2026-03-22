@@ -2,6 +2,8 @@
 package common
 
 import (
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/m-oehme/jiji/internal/config"
@@ -26,15 +28,16 @@ type Common struct {
 
 // truncate cuts a string to maxLen, appending "…" if truncated.
 func Truncate(s string, maxLen int) string {
+	trimed := strings.TrimRightFunc(s, unicode.IsSpace)
 	if maxLen <= 0 {
 		return ""
 	}
-	if utf8.RuneCountInString(s) <= maxLen {
-		return s
+	if utf8.RuneCountInString(trimed) <= maxLen-1 {
+		return trimed
 	}
 	if maxLen <= 1 {
 		return "…"
 	}
 
-	return runewidth.Truncate(s, maxLen, "…")
+	return runewidth.Truncate(trimed, maxLen, "…")
 }
