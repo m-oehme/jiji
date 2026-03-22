@@ -2,15 +2,11 @@
 package issuelist
 
 import (
-	"fmt"
 	"strings"
-
-	tea "charm.land/bubbletea/v2"
-	"charm.land/bubbles/v2/textinput"
-	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
+	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 )
 
 // Column widths for the issue table.
@@ -22,25 +18,18 @@ const (
 
 // Model represents the issue list page.
 type Model struct {
-	common   *common.Common
-	issues   []jira.Issue
-	cursor   int
-	offset   int // first visible row index for scrolling
-	jql      string // last submitted JQL
-	jqlInput textinput.Model
-	jqlFocus bool // true when JQL input is being edited
-	width    int
-	height   int
+	common *common.Common
+	issues []jira.Issue
+	cursor int
+	offset int // first visible row index for scrolling
+	width  int
+	height int
 }
 
 // New creates a new issue list page.
 func New(c *common.Common) Model {
-	ti := textinput.New()
-	ti.Prompt = "JQL: "
-	ti.SetVirtualCursor(true)
 	return Model{
-		common:   c,
-		jqlInput: ti,
+		common: c,
 	}
 }
 
@@ -96,48 +85,6 @@ func (m *Model) JumpToBottom() {
 	}
 }
 
-// SetJQL sets the JQL query string displayed above the table.
-func (m *Model) SetJQL(jql string) {
-	m.jql = jql
-	m.jqlInput.SetValue(jql)
-}
-
-// JQLValue returns the current JQL string (from the text input when focused, or last submitted).
-func (m *Model) JQLValue() string {
-	if m.jqlFocus {
-		return m.jqlInput.Value()
-	}
-	return m.jql
-}
-
-// FocusJQL activates the JQL text input for editing.
-func (m *Model) FocusJQL() tea.Cmd {
-	m.jqlFocus = true
-	m.jqlInput.SetValue(m.jql)
-	m.jqlInput.CursorEnd()
-	return m.jqlInput.Focus()
-}
-
-// UnfocusJQL deactivates the JQL text input, reverting to the last submitted value.
-func (m *Model) UnfocusJQL() {
-	m.jqlFocus = false
-	m.jqlInput.Blur()
-	// On cancel, revert to last submitted JQL
-	m.jqlInput.SetValue(m.jql)
-}
-
-// IsJQLFocused returns whether the JQL input is being edited.
-func (m *Model) IsJQLFocused() bool {
-	return m.jqlFocus
-}
-
-// UpdateJQL delegates a key message to the textinput and returns any command.
-func (m *Model) UpdateJQL(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
-	m.jqlInput, cmd = m.jqlInput.Update(msg)
-	return cmd
-}
-
 // SetFocused updates the focused state.
 func (m *Model) SetFocused(focused bool) {
 	m.common.Focused = focused
@@ -147,14 +94,6 @@ func (m *Model) SetFocused(focused bool) {
 func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	frameW, _ := m.common.Styles.Border.GetFrameSize()
-	contentW := width - frameW
-	// Account for the "JQL: " prompt width
-	inputW := contentW - lipgloss.Width(m.jqlInput.Prompt)
-	if inputW < 1 {
-		inputW = 1
-	}
-	m.jqlInput.SetWidth(inputW)
 }
 
 // View renders the issue list pane.
@@ -177,19 +116,11 @@ func (m Model) View() string {
 		return borderStyle.Width(m.width).Height(m.height).Render("")
 	}
 
-	// JQL line: interactive textinput when focused, static text when unfocused.
-	var jqlLine string
-	if m.jqlFocus {
-		jqlLine = m.jqlInput.View()
-	} else {
-		jqlLine = m.common.Styles.Dimmed.Render(truncate("JQL: "+m.jql, contentW))
-	}
-
 	// Header
-	header := m.renderHeader(contentW)
+	header := entry.RenderHeader(m.common, contentW)
 
 	// Row space = content height minus JQL and header lines
-	rowSpace := contentH - lipgloss.Height(jqlLine) - 1
+	rowSpace := contentH - 1
 	if rowSpace < 0 {
 		rowSpace = 0
 	}
@@ -198,7 +129,7 @@ func (m Model) View() string {
 	start, end := m.visibleRange(rowSpace)
 	var rows []string
 	for i := start; i < end; i++ {
-		rows = append(rows, m.renderRow(i, contentW))
+		rows = append(rows, entry.RenderListEntry(m.common, m.issues[i], contentW, i == m.cursor))
 	}
 
 	// Pad remaining lines
@@ -206,7 +137,7 @@ func (m Model) View() string {
 		rows = append(rows, strings.Repeat(" ", contentW))
 	}
 
-	content := jqlLine + "\n" + header + "\n" + strings.Join(rows, "\n")
+	content := header + "\n" + strings.Join(rows, "\n")
 
 	// Width/Height = outer size; lipgloss subtracts the frame for content area.
 	// MaxWidth/MaxHeight = hard clip safety net.
@@ -246,74 +177,4 @@ func (m Model) visibleRange(viewportH int) (start, end int) {
 		end = total
 	}
 	return start, end
-}
-
-// prioritySymbol maps Jira priority names to compact single-width symbols.
-func prioritySymbol(name string) string {
-	switch strings.ToLower(name) {
-	case "highest":
-		return "↑↑"
-	case "high":
-		return "↑"
-	case "medium":
-		return "●"
-	case "low":
-		return "↓"
-	case "lowest":
-		return "↓↓"
-	default:
-		return "·"
-	}
-}
-
-// renderHeader renders the column header row.
-func (m Model) renderHeader(width int) string {
-	summaryW := width - colKeyWidth - colPriorityWidth - colAssigneeWidth
-	if summaryW < 4 {
-		summaryW = 4
-	}
-	header := fmt.Sprintf("%-*s%-*s%-*s%-*s",
-		colKeyWidth, "KEY",
-		colPriorityWidth, "P",
-		colAssigneeWidth, "ASSIGNEE",
-		summaryW, "SUMMARY",
-	)
-	return m.common.Styles.Dimmed.Width(width).Render(truncate(header, width))
-}
-
-// renderRow renders a single issue row.
-func (m Model) renderRow(idx, width int) string {
-	issue := m.issues[idx]
-	summaryW := width - colKeyWidth - colPriorityWidth - colAssigneeWidth
-	if summaryW < 4 {
-		summaryW = 4
-	}
-
-	pri := prioritySymbol(issue.Priority)
-	row := fmt.Sprintf("%-*s%-*s%-*s%-*s",
-		colKeyWidth, truncate(issue.Key, colKeyWidth),
-		colPriorityWidth, pri,
-		colAssigneeWidth, truncate(issue.Assignee, colAssigneeWidth),
-		summaryW, truncate(issue.Summary, summaryW),
-	)
-	row = truncate(row, width)
-
-	if idx == m.cursor {
-		return m.common.Styles.IssueSelected.Width(width).Render(row)
-	}
-	return lipgloss.NewStyle().Width(width).Render(row)
-}
-
-// truncate cuts a string to maxLen, appending "…" if truncated.
-func truncate(s string, maxLen int) string {
-	if maxLen <= 0 {
-		return ""
-	}
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 1 {
-		return "…"
-	}
-	return s[:maxLen-1] + "…"
 }

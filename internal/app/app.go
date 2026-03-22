@@ -17,7 +17,7 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/components/statusbar"
 	"github.com/m-oehme/jiji/internal/ui/components/tabs"
 	"github.com/m-oehme/jiji/internal/ui/pages/detail"
-	"github.com/m-oehme/jiji/internal/ui/pages/issuelist"
+	"github.com/m-oehme/jiji/internal/ui/pages/issuepane"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
@@ -43,8 +43,9 @@ type Model struct {
 	help      help.Model
 
 	// Pages
-	issueList issuelist.Model
-	detail    detail.Model
+	issuepane issuepane.Model
+	// issueList issuelist.Model
+	detail detail.Model
 
 	// Dimensions
 	width, height int
@@ -77,11 +78,11 @@ func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 		tabs:         tabs.New(cfg.Tabs, s),
 		statusBar:    statusbar.New(s),
 		help:         help.New(&cfg.Keys, s),
-		issueList:    issuelist.New(listCommon),
+		issuepane:    issuepane.New(listCommon),
 		detail:       detail.New(detailCommon),
 	}
 
-	m.issueList.SetJQL(cfg.Tabs[0].JQL)
+	m.issuepane.JqlSearch.SetJQL(cfg.Tabs[0].JQL)
 
 	return m
 }
@@ -123,13 +124,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Async API results (ADR-010)
 	case SearchResultMsg:
 		m.log.Info("search results", "count", len(msg.Issues), "tab", msg.TabIndex)
-		m.issueList.SetItems(msg.Issues)
+		m.issuepane.IssueList.SetItems(msg.Issues)
 		m.statusBar.SetLoading(false)
 		m.statusBar.SetIssueCount(len(msg.Issues))
 		// Auto-select first issue and load detail
 		if len(msg.Issues) > 0 {
-			m.issueList.JumpToTop()
-			issue := m.issueList.SelectedIssue()
+			m.issuepane.IssueList.JumpToTop()
+			issue := m.issuepane.IssueList.SelectedIssue()
 			m.statusBar.SetCurrentIssue(issue.Key)
 			return m, tea.Batch(
 				m.loadIssueDetail(issue.Key),
@@ -176,7 +177,7 @@ func (m Model) View() tea.View {
 	}
 
 	tabBar := m.tabs.View()
-	leftPane := m.issueList.View()
+	leftPane := m.issuepane.View()
 	rightPane := m.detail.View()
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 	statusBar := m.statusBar.View()
@@ -202,7 +203,7 @@ func (m Model) View() tea.View {
 
 // Fixed heights for tab bar and status bar.
 const (
-	tabBarHeight   = 1
+	tabBarHeight    = 1
 	statusBarHeight = 1
 )
 
@@ -220,7 +221,8 @@ func (m *Model) recalcLayout() {
 
 	// Split body into left (issue list) and right (detail)
 	leftW, rightW := common.SplitHorizontal(m.width, m.cfg.UI.ListRatio)
-	m.issueList.SetSize(leftW, bodyH)
+	// m.issueList.SetSize(leftW, bodyH)
+	m.issuepane.SetSize(leftW, bodyH)
 	m.detail.SetSize(rightW, bodyH)
 }
 

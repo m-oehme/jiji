@@ -5,7 +5,7 @@ LDFLAGS := -X github.com/m-oehme/jiji/internal/version.Version=$(VERSION) \
            -X github.com/m-oehme/jiji/internal/version.Commit=$(COMMIT) \
            -X github.com/m-oehme/jiji/internal/version.Date=$(DATE)
 
-.PHONY: build run lint test clean
+.PHONY: build run lint test clean watch
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/jiji ./cmd/jiji
@@ -18,6 +18,9 @@ lint:
 
 test:
 	go test ./...
+
+watch:
+	watchexec -e go -r make run
 
 clean:
 	rm -rf bin/

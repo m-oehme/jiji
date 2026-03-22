@@ -137,9 +137,9 @@ func setupModel(t *testing.T) Model {
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	m = sized.(Model)
 	// Simulate search results arriving
-	m.issueList.SetItems(client.issues)
+	m.issuepane.IssueList.SetItems(client.issues)
 	m.statusBar.SetIssueCount(len(client.issues))
-	if sel := m.issueList.SelectedIssue(); sel != nil {
+	if sel := m.issuepane.IssueList.SelectedIssue(); sel != nil {
 		m.statusBar.SetCurrentIssue(sel.Key)
 	}
 	return m
@@ -163,7 +163,7 @@ func TestApp_InitialState(t *testing.T) {
 	if m.focus.HasOverlay() {
 		t.Fatal("expected no overlay initially")
 	}
-	if m.issueList.SelectedIssue() == nil {
+	if m.issuepane.IssueList.SelectedIssue() == nil {
 		t.Fatal("expected issues loaded")
 	}
 }
@@ -189,34 +189,34 @@ func TestApp_PaneSwitch(t *testing.T) {
 
 func TestApp_IssueListNavigation(t *testing.T) {
 	m := setupModel(t)
-	startIdx := m.issueList.SelectedIndex()
+	startIdx := m.issuepane.IssueList.SelectedIndex()
 
 	// j moves down
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "j", Code: 'j'})
 	m = updated.(Model)
-	if m.issueList.SelectedIndex() != startIdx+1 {
-		t.Fatalf("expected index %d after j, got %d", startIdx+1, m.issueList.SelectedIndex())
+	if m.issuepane.IssueList.SelectedIndex() != startIdx+1 {
+		t.Fatalf("expected index %d after j, got %d", startIdx+1, m.issuepane.IssueList.SelectedIndex())
 	}
 
 	// k moves up
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "k", Code: 'k'})
 	m = updated.(Model)
-	if m.issueList.SelectedIndex() != startIdx {
-		t.Fatalf("expected index %d after k, got %d", startIdx, m.issueList.SelectedIndex())
+	if m.issuepane.IssueList.SelectedIndex() != startIdx {
+		t.Fatalf("expected index %d after k, got %d", startIdx, m.issuepane.IssueList.SelectedIndex())
 	}
 
 	// G jumps to bottom
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "G", Code: 'G'})
 	m = updated.(Model)
-	if m.issueList.SelectedIndex() == 0 {
+	if m.issuepane.IssueList.SelectedIndex() == 0 {
 		t.Fatal("expected non-zero index after G")
 	}
 
 	// g jumps to top
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "g", Code: 'g'})
 	m = updated.(Model)
-	if m.issueList.SelectedIndex() != 0 {
-		t.Fatalf("expected index 0 after g, got %d", m.issueList.SelectedIndex())
+	if m.issuepane.IssueList.SelectedIndex() != 0 {
+		t.Fatalf("expected index 0 after g, got %d", m.issuepane.IssueList.SelectedIndex())
 	}
 }
 
@@ -293,7 +293,7 @@ func TestApp_CtrlC_AlwaysQuits(t *testing.T) {
 
 func TestApp_OverlayBlocksNavigation(t *testing.T) {
 	m := setupModel(t)
-	startIdx := m.issueList.SelectedIndex()
+	startIdx := m.issuepane.IssueList.SelectedIndex()
 
 	// Open help overlay
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "?", Code: '?'})
@@ -303,7 +303,7 @@ func TestApp_OverlayBlocksNavigation(t *testing.T) {
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "j", Code: 'j'})
 	m = updated.(Model)
 
-	if m.issueList.SelectedIndex() != startIdx {
+	if m.issuepane.IssueList.SelectedIndex() != startIdx {
 		t.Fatal("navigation should be blocked when overlay is active")
 	}
 }
@@ -316,11 +316,11 @@ func TestApp_DetailScrolling(t *testing.T) {
 	m = updated.(Model)
 
 	// j/k should scroll detail, not navigate issue list
-	startIdx := m.issueList.SelectedIndex()
+	startIdx := m.issuepane.IssueList.SelectedIndex()
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "j", Code: 'j'})
 	m = updated.(Model)
 
-	if m.issueList.SelectedIndex() != startIdx {
+	if m.issuepane.IssueList.SelectedIndex() != startIdx {
 		t.Fatal("j in detail pane should not move issue list cursor")
 	}
 }
@@ -372,11 +372,11 @@ func TestApp_SearchResultMsg(t *testing.T) {
 	updated, cmd := m.Update(SearchResultMsg{Issues: issues, TabIndex: 0})
 	m = updated.(Model)
 
-	if m.issueList.SelectedIssue() == nil {
+	if m.issuepane.IssueList.SelectedIssue() == nil {
 		t.Fatal("expected issues after SearchResultMsg")
 	}
-	if m.issueList.SelectedIssue().Key != "TEST-1" {
-		t.Fatalf("expected first issue TEST-1, got %s", m.issueList.SelectedIssue().Key)
+	if m.issuepane.IssueList.SelectedIssue().Key != "TEST-1" {
+		t.Fatalf("expected first issue TEST-1, got %s", m.issuepane.IssueList.SelectedIssue().Key)
 	}
 	// Should return a batch cmd to load detail + comments
 	if cmd == nil {
@@ -453,7 +453,7 @@ func TestApp_JQLFocus(t *testing.T) {
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "/", Code: '/'})
 	m = updated.(Model)
 
-	if !m.issueList.IsJQLFocused() {
+	if !m.issuepane.JqlSearch.IsJQLFocused() {
 		t.Fatal("expected JQL focused after /")
 	}
 
@@ -461,7 +461,7 @@ func TestApp_JQLFocus(t *testing.T) {
 	updated, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	m = updated.(Model)
 
-	if m.issueList.IsJQLFocused() {
+	if m.issuepane.JqlSearch.IsJQLFocused() {
 		t.Fatal("expected JQL unfocused after Esc")
 	}
 }
@@ -477,7 +477,7 @@ func TestApp_JQLSubmit(t *testing.T) {
 	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = updated.(Model)
 
-	if m.issueList.IsJQLFocused() {
+	if m.issuepane.JqlSearch.IsJQLFocused() {
 		t.Fatal("expected JQL unfocused after Enter")
 	}
 	if cmd == nil {
@@ -487,7 +487,7 @@ func TestApp_JQLSubmit(t *testing.T) {
 
 func TestApp_JQLBlocksOtherKeys(t *testing.T) {
 	m := setupModel(t)
-	startIdx := m.issueList.SelectedIndex()
+	startIdx := m.issuepane.IssueList.SelectedIndex()
 
 	// Focus JQL
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "/", Code: '/'})
@@ -497,7 +497,7 @@ func TestApp_JQLBlocksOtherKeys(t *testing.T) {
 	updated, _ = m.Update(tea.KeyPressMsg{Text: "j", Code: 'j'})
 	m = updated.(Model)
 
-	if m.issueList.SelectedIndex() != startIdx {
+	if m.issuepane.IssueList.SelectedIndex() != startIdx {
 		t.Fatal("j should not navigate issue list when JQL is focused")
 	}
 

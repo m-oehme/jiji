@@ -130,20 +130,10 @@ func TestModel_SetItems_CursorClamp(t *testing.T) {
 	}
 }
 
-func TestModel_JQL(t *testing.T) {
-	c := testCommon()
-	m := New(c)
-	m.SetJQL("project = TEST ORDER BY created DESC")
-	if m.JQLValue() != "project = TEST ORDER BY created DESC" {
-		t.Fatalf("unexpected JQL: %s", m.JQLValue())
-	}
-}
-
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
 	m := New(c)
 	m.SetItems(testIssues())
-	m.SetJQL("ORDER BY updated DESC")
 	m.SetSize(80, 20)
 
 	view := m.View()
@@ -176,9 +166,9 @@ func TestTruncate(t *testing.T) {
 		{"", 5, ""},
 	}
 	for _, tt := range tests {
-		got := truncate(tt.input, tt.maxLen)
+		got := common.Truncate(tt.input, tt.maxLen)
 		if got != tt.want {
-			t.Errorf("truncate(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
+			t.Errorf("common.Truncate(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
 		}
 	}
 }

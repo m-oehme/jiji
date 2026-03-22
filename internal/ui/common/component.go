@@ -2,8 +2,11 @@
 package common
 
 import (
+	"unicode/utf8"
+
 	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/ui/styles"
+	"github.com/mattn/go-runewidth"
 )
 
 // Component extends tea.Model with dimension management.
@@ -19,4 +22,19 @@ type Common struct {
 	Styles        *styles.Styles
 	Keys          *config.KeyConfig
 	Focused       bool
+}
+
+// truncate cuts a string to maxLen, appending "…" if truncated.
+func Truncate(s string, maxLen int) string {
+	if maxLen <= 0 {
+		return ""
+	}
+	if utf8.RuneCountInString(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 1 {
+		return "…"
+	}
+
+	return runewidth.Truncate(s, maxLen, "…")
 }

@@ -11,10 +11,10 @@ import (
 // handleKey routes key presses per ADR-009 priority.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
-	m.log.Debug("key press", "key", key, "pane", m.focus.ActivePane(), "overlay", m.focus.HasOverlay(), "jql_focused", m.issueList.IsJQLFocused())
+	m.log.Debug("key press", "key", key, "pane", m.focus.ActivePane(), "overlay", m.focus.HasOverlay(), "jql_focused", m.issuepane.JqlSearch.IsJQLFocused())
 
 	// JQL input focused — route all keys to text input except Enter/Esc
-	if m.issueList.IsJQLFocused() {
+	if m.issuepane.JqlSearch.IsJQLFocused() {
 		return m.handleJQLKey(msg)
 	}
 
@@ -107,18 +107,18 @@ func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case matchKey(key, m.cfg.Keys.Confirm) || key == "enter":
-		jql := m.issueList.JQLValue()
-		m.issueList.UnfocusJQL()
+		jql := m.issuepane.JqlSearch.JQLValue()
+		m.issuepane.JqlSearch.UnfocusJQL()
 		m.statusBar.SetLoading(true)
 		return m, m.searchIssues(jql, m.tabs.Active())
 
 	case matchKey(key, m.cfg.Keys.Cancel) || key == "esc":
-		m.issueList.UnfocusJQL()
+		m.issuepane.JqlSearch.UnfocusJQL()
 		return m, nil
 	}
 
 	// Delegate to textinput
-	cmd := m.issueList.UpdateJQL(msg)
+	cmd := m.issuepane.JqlSearch.UpdateJQL(msg)
 	return m, cmd
 }
 
@@ -126,26 +126,26 @@ func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleIssueListKey(key string, msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Focus JQL input
 	if matchKey(key, m.cfg.Keys.FocusJQL) {
-		cmd := m.issueList.FocusJQL()
+		cmd := m.issuepane.JqlSearch.FocusJQL()
 		return m, cmd
 	}
 
-	prevIdx := m.issueList.SelectedIndex()
+	prevIdx := m.issuepane.IssueList.SelectedIndex()
 
 	switch {
 	case matchKey(key, m.cfg.Keys.Down):
-		m.issueList.MoveDown()
+		m.issuepane.IssueList.MoveDown()
 	case matchKey(key, m.cfg.Keys.Up):
-		m.issueList.MoveUp()
+		m.issuepane.IssueList.MoveUp()
 	case matchKey(key, m.cfg.Keys.Top):
-		m.issueList.JumpToTop()
+		m.issuepane.IssueList.JumpToTop()
 	case matchKey(key, m.cfg.Keys.Bottom):
-		m.issueList.JumpToBottom()
+		m.issuepane.IssueList.JumpToBottom()
 	}
 
 	// Auto-load detail if selection changed (ADR-005)
-	if m.issueList.SelectedIndex() != prevIdx {
-		if sel := m.issueList.SelectedIssue(); sel != nil {
+	if m.issuepane.IssueList.SelectedIndex() != prevIdx {
+		if sel := m.issuepane.IssueList.SelectedIssue(); sel != nil {
 			m.statusBar.SetCurrentIssue(sel.Key)
 			if m.client != nil {
 				return m, tea.Batch(
