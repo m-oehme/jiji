@@ -6,6 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 	"github.com/mattn/go-runewidth"
@@ -40,4 +41,11 @@ func Truncate(s string, maxLen int) string {
 	}
 
 	return runewidth.Truncate(trimed, maxLen, "…")
+}
+
+// ReplaceAt replaces visible characters in s at visual position start with replacement.
+// ANSI escape sequences are preserved.
+func ReplaceAt(s string, start int, replacement string) string {
+	end := start + ansi.StringWidth(replacement)
+	return ansi.Truncate(s, start, "") + replacement + ansi.TruncateLeft(s, end, "")
 }

@@ -3,9 +3,10 @@ package detail
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/viewport"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
-	"charm.land/bubbles/v2/viewport"
+	"github.com/m-oehme/jiji/internal/ui/components/borderbox"
 )
 
 // Model is the detail pane orchestrator: metadata banner + scrollable content.
@@ -110,19 +111,9 @@ func (m Model) View() string {
 		return ""
 	}
 
-	borderStyle := m.common.Styles.Border
-	if m.common.Focused {
-		borderStyle = m.common.Styles.BorderFocused
-	}
-
-	// In lipgloss v2, Width/Height set the TOTAL rendered size including
-	// borders/padding. Content area = total - frame.
-	frameW, frameH := borderStyle.GetFrameSize()
-	contentW := m.width - frameW
-	contentH := m.height - frameH
-	if contentW <= 0 || contentH <= 0 {
-		return borderStyle.Width(m.width).Height(m.height).Render("")
-	}
+	border := borderbox.New(m.common, m.common.Focused)
+	border.SetSize(m.width, m.height)
+	contentW, contentH := border.GetContentSize()
 
 	meta := renderMetadata(m.issue, contentW, m.common.Styles)
 	vpContent := m.viewport.View()
@@ -139,10 +130,5 @@ func (m Model) View() string {
 		lines = lines[:contentH]
 	}
 
-	return borderStyle.
-		Width(m.width).
-		Height(m.height).
-		MaxWidth(m.width).
-		MaxHeight(m.height).
-		Render(strings.Join(lines, "\n"))
+	return border.Render(strings.Join(lines, "\n"), "Details")
 }

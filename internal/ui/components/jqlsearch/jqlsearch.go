@@ -5,6 +5,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/m-oehme/jiji/internal/ui/common"
+	"github.com/m-oehme/jiji/internal/ui/components/borderbox"
 )
 
 type Model struct {
@@ -55,13 +56,9 @@ func (m *Model) View() string {
 		return ""
 	}
 
-	frameW, _ := m.common.Styles.Border.GetFrameSize()
-	contentW := m.width - frameW
-
-	borderStyle := m.common.Styles.Border
-	if m.jqlFocus {
-		borderStyle = m.common.Styles.BorderFocused
-	}
+	border := borderbox.New(m.common, m.jqlFocus)
+	border.SetSize(m.width, m.height)
+	contentW, _ := border.GetContentSize()
 
 	// JQL line: interactive textinput when focused, static text when unfocused.
 	var jqlLine string
@@ -73,15 +70,10 @@ func (m *Model) View() string {
 			Width(contentW).
 			MaxHeight(1).
 			MaxWidth(contentW).
-			Render(common.Truncate("JQL: "+m.jql, contentW))
+			Render(common.Truncate(m.jql, contentW))
 	}
 
-	return borderStyle.
-		Width(m.width).
-		Height(m.height).
-		MaxWidth(m.width).
-		MaxHeight(m.height).
-		Render(jqlLine)
+	return border.Render(jqlLine, "JQL")
 }
 
 // SetJQL sets the JQL query string displayed above the table.

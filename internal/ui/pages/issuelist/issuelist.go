@@ -6,6 +6,7 @@ import (
 
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
+	"github.com/m-oehme/jiji/internal/ui/components/borderbox"
 	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 )
 
@@ -102,19 +103,9 @@ func (m Model) View() string {
 		return ""
 	}
 
-	borderStyle := m.common.Styles.Border
-	if m.common.Focused {
-		borderStyle = m.common.Styles.BorderFocused
-	}
-
-	// In lipgloss v2, Width/Height set the TOTAL rendered size including
-	// borders/padding. Content area = total - frame.
-	frameW, frameH := borderStyle.GetFrameSize()
-	contentW := m.width - frameW
-	contentH := m.height - frameH
-	if contentW <= 0 || contentH <= 0 {
-		return borderStyle.Width(m.width).Height(m.height).Render("")
-	}
+	border := borderbox.New(m.common, m.common.Focused)
+	border.SetSize(m.width, m.height)
+	contentW, contentH := border.GetContentSize()
 
 	// Header
 	header := entry.RenderHeader(m.common, contentW)
@@ -139,14 +130,7 @@ func (m Model) View() string {
 
 	content := header + "\n" + strings.Join(rows, "\n")
 
-	// Width/Height = outer size; lipgloss subtracts the frame for content area.
-	// MaxWidth/MaxHeight = hard clip safety net.
-	return borderStyle.
-		Width(m.width).
-		Height(m.height).
-		MaxWidth(m.width).
-		MaxHeight(m.height).
-		Render(content)
+	return border.Render(content, "Issues")
 }
 
 // visibleRange returns the slice of issues to render, keeping the cursor visible.
