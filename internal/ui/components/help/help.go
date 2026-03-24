@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/m-oehme/jiji/internal/config"
+	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 	lipgloss "charm.land/lipgloss/v2"
 )
@@ -18,19 +18,19 @@ type binding struct {
 
 // Model represents the help overlay.
 type Model struct {
-	styles   *styles.Styles
-	keys     *config.KeyConfig
-	width    int
-	height   int
-	scroll   int
-	lines    []string // precomputed content lines
-	built    bool
+	ctx    *common.Context
+	styles *styles.Styles
+	width  int
+	height int
+	scroll int
+	lines  []string // precomputed content lines
+	built  bool
 }
 
 // New creates a help overlay.
-func New(keys *config.KeyConfig, s *styles.Styles) Model {
+func New(ctx *common.Context, s *styles.Styles) Model {
 	return Model{
-		keys:   keys,
+		ctx:    ctx,
 		styles: s,
 	}
 }
@@ -66,25 +66,26 @@ func (m *Model) innerHeight() int {
 }
 
 func (m *Model) build() {
+	keys := &m.ctx.Config.Keys
 	bindings := []binding{
-		{"Move up", m.keys.Up},
-		{"Move down", m.keys.Down},
-		{"Jump to top", m.keys.Top},
-		{"Jump to bottom", m.keys.Bottom},
-		{"Next tab", m.keys.TabNext},
-		{"Previous tab", m.keys.TabPrev},
-		{"Switch pane", m.keys.PaneSwitch},
-		{"Focus JQL", m.keys.FocusJQL},
-		{"Confirm", m.keys.Confirm},
-		{"Cancel / Back", m.keys.Cancel},
-		{"Transition", m.keys.Transition},
-		{"Comment", m.keys.Comment},
-		{"Labels", m.keys.Labels},
-		{"Edit summary", m.keys.Summary},
-		{"Edit description", m.keys.Edit},
-		{"Refresh", m.keys.Refresh},
-		{"Help", m.keys.Help},
-		{"Quit", m.keys.Quit},
+		{"Move up", keys.Up},
+		{"Move down", keys.Down},
+		{"Jump to top", keys.Top},
+		{"Jump to bottom", keys.Bottom},
+		{"Next tab", keys.TabNext},
+		{"Previous tab", keys.TabPrev},
+		{"Switch pane", keys.PaneSwitch},
+		{"Focus JQL", keys.FocusJQL},
+		{"Confirm", keys.Confirm},
+		{"Cancel / Back", keys.Cancel},
+		{"Transition", keys.Transition},
+		{"Comment", keys.Comment},
+		{"Labels", keys.Labels},
+		{"Edit summary", keys.Summary},
+		{"Edit description", keys.Edit},
+		{"Refresh", keys.Refresh},
+		{"Help", keys.Help},
+		{"Quit", keys.Quit},
 	}
 
 	keyStyle := m.styles.Heading

@@ -9,6 +9,7 @@ import (
 )
 
 type Model struct {
+	ctx      *common.Context
 	common   *common.Common
 	jql      string // last submitted JQL
 	jqlInput textinput.Model
@@ -23,11 +24,12 @@ const (
 	lineHeight      = 1
 )
 
-func New(c *common.Common) Model {
+func New(ctx *common.Context, c *common.Common) Model {
 	ti := textinput.New()
 	ti.Prompt = "JQL: "
 	ti.SetVirtualCursor(true)
 	return Model{
+		ctx:      ctx,
 		common:   c,
 		jqlInput: ti,
 	}
@@ -56,7 +58,7 @@ func (m *Model) View() string {
 		return ""
 	}
 
-	border := borderbox.New(m.common, m.common.Focused)
+	border := borderbox.New(m.ctx, m.common, m.common.Focused)
 	border.SetSize(m.width, m.height)
 	contentW, _ := border.GetContentSize()
 

@@ -6,12 +6,14 @@ import (
 	"strings"
 
 	"github.com/m-oehme/jiji/internal/config"
+	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 	lipgloss "charm.land/lipgloss/v2"
 )
 
 // Model represents the tab bar component.
 type Model struct {
+	ctx    *common.Context
 	tabs   []config.TabConfig
 	active int
 	width  int
@@ -20,8 +22,9 @@ type Model struct {
 }
 
 // New creates a tab bar from the configured tabs.
-func New(tabs []config.TabConfig, s *styles.Styles) Model {
+func New(ctx *common.Context, tabs []config.TabConfig, s *styles.Styles) Model {
 	return Model{
+		ctx:    ctx,
 		tabs:   tabs,
 		active: 0,
 		styles: s,

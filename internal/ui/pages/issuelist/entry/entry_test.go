@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/m-oehme/jiji/internal/config"
@@ -8,6 +9,13 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
+
+func testContext() *common.Context {
+	return &common.Context{
+		Config: &config.Config{},
+		Logger: slog.New(slog.DiscardHandler),
+	}
+}
 
 func testCommon() *common.Common {
 	s := styles.NewStyles(config.ThemeConfig{
@@ -23,7 +31,6 @@ func testCommon() *common.Common {
 	})
 	return &common.Common{
 		Styles:  s,
-		Keys:    &config.KeyConfig{},
 		Focused: true,
 	}
 }
@@ -82,7 +89,7 @@ func TestColumnsFromConfig_Empty(t *testing.T) {
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
 	cols := ColumnsFromConfig([]string{"key", "priority", "assignee", "summary"})
-	m := New(c, cols)
+	m := New(testContext(), c, cols)
 	m.SetSize(80)
 	m.SetIssue(jira.Issue{Key: "TEST-1", Summary: "A summary", Priority: "High", Assignee: "Alice"})
 	m.SetSelected(false)
@@ -96,7 +103,7 @@ func TestModel_View_NonEmpty(t *testing.T) {
 func TestModel_View_ZeroWidth(t *testing.T) {
 	c := testCommon()
 	cols := ColumnsFromConfig([]string{"key", "summary"})
-	m := New(c, cols)
+	m := New(testContext(), c, cols)
 	m.SetSize(0)
 
 	if m.View() != "" {

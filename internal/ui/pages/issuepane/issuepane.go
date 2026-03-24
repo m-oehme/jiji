@@ -10,6 +10,7 @@ import (
 
 // Model represents the issue list page.
 type Model struct {
+	ctx    *common.Context
 	common *common.Common
 	width  int
 	height int
@@ -19,10 +20,11 @@ type Model struct {
 }
 
 // New creates a new issue list page.
-func New(c *common.Common, columns []entry.Column) Model {
-	issuelist := issuelist.New(c, columns)
-	jqlsearch := jqlsearch.New(c)
+func New(ctx *common.Context, c *common.Common, columns []entry.Column) Model {
+	issuelist := issuelist.New(ctx, c, columns)
+	jqlsearch := jqlsearch.New(ctx, c)
 	return Model{
+		ctx:       ctx,
 		common:    c,
 		JqlSearch: jqlsearch,
 		IssueList: issuelist,

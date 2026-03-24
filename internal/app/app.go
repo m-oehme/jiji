@@ -27,9 +27,8 @@ const errorDisplayDuration = 5 * time.Second
 
 // Model is the root tea.Model composing all UI elements (ADR-002, ADR-009, ADR-010).
 type Model struct {
-	cfg    *config.Config
+	ctx    *common.Context
 	client jira.Client
-	log    *slog.Logger
 
 	focus  *common.Focus
 	styles *styles.Styles
@@ -57,30 +56,32 @@ func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 	s := styles.NewStyles(cfg.Theme)
 	f := common.NewFocus()
 
+	ctx := &common.Context{
+		Config: cfg,
+		Logger: log,
+	}
+
 	listCommon := &common.Common{
 		Styles:  s,
-		Keys:    &cfg.Keys,
 		Focused: true, // issue list starts focused
 	}
 	detailCommon := &common.Common{
 		Styles:  s,
-		Keys:    &cfg.Keys,
 		Focused: false,
 	}
 
 	m := Model{
-		cfg:          cfg,
+		ctx:          ctx,
 		client:       client,
-		log:          log,
 		focus:        f,
 		styles:       s,
 		listCommon:   listCommon,
 		detailCommon: detailCommon,
-		tabs:         tabs.New(cfg.Tabs, s),
-		statusBar:    statusbar.New(s),
-		help:         help.New(&cfg.Keys, s),
-		issuepane:    issuepane.New(listCommon, entry.ColumnsFromConfig(cfg.UI.Fields.List)),
-		detail:       detail.New(detailCommon),
+		tabs:         tabs.New(ctx, cfg.Tabs, s),
+		statusBar:    statusbar.New(ctx, s),
+		help:         help.New(ctx, s),
+		issuepane:    issuepane.New(ctx, listCommon, entry.ColumnsFromConfig(cfg.UI.Fields.List)),
+		detail:       detail.New(ctx, detailCommon),
 	}
 
 	m.issuepane.JqlSearch.SetJQL(cfg.Tabs[0].JQL)
@@ -90,20 +91,20 @@ func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 
 // Init returns initial commands — request terminal size and fire first search.
 func (m Model) Init() tea.Cmd {
-	m.log.Info("starting jiji", "tabs", len(m.cfg.Tabs))
+	m.ctx.Logger.Info("starting jiji", "tabs", len(m.ctx.Config.Tabs))
 	m.statusBar.SetLoading(true)
 	cmds := []tea.Cmd{
 		func() tea.Msg { return tea.RequestWindowSize() },
 	}
 	if m.client != nil {
-		cmds = append(cmds, m.searchIssues(m.cfg.Tabs[0].JQL, 0))
+		cmds = append(cmds, m.searchIssues(m.ctx.Config.Tabs[0].JQL, 0))
 	}
 	return tea.Batch(cmds...)
 }
 
 // Update handles messages per the routing priority from ADR-009 and async results (ADR-010).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	m.log.Debug("msg received", "type", fmt.Sprintf("%T", msg))
+	m.ctx.Logger.Debug("msg received", "type", fmt.Sprintf("%T", msg))
 
 	switch msg := msg.(type) {
 	// 1. Ctrl+C — always quit
@@ -116,7 +117,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// 2. Window resize
 	case tea.WindowSizeMsg:
-		m.log.Debug("window resize", "width", msg.Width, "height", msg.Height)
+		m.ctx.Logger.Debug("window resize", "width", msg.Width, "height", msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
 		m.recalcLayout()
@@ -124,7 +125,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Async API results (ADR-010)
 	case SearchResultMsg:
-		m.log.Info("search results", "count", len(msg.Issues), "tab", msg.TabIndex)
+		m.ctx.Logger.Info("search results", "count", len(msg.Issues), "tab", msg.TabIndex)
 		m.issuepane.IssueList.SetItems(msg.Issues)
 		m.statusBar.SetLoading(false)
 		m.statusBar.SetIssueCount(len(msg.Issues))
@@ -141,18 +142,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case IssueDetailMsg:
-		m.log.Info("issue detail loaded", "key", msg.Issue.Key)
+		m.ctx.Logger.Info("issue detail loaded", "key", msg.Issue.Key)
 		m.detail.SetIssue(msg.Issue)
 		m.statusBar.SetLoading(false)
 		return m, nil
 
 	case CommentsMsg:
-		m.log.Info("comments loaded", "key", msg.IssueKey, "count", len(msg.Comments))
+		m.ctx.Logger.Info("comments loaded", "key", msg.IssueKey, "count", len(msg.Comments))
 		m.detail.SetComments(msg.Comments)
 		return m, nil
 
 	case ErrorMsg:
-		m.log.Error("api error", "context", msg.Context, "err", msg.Err)
+		m.ctx.Logger.Error("api error", "context", msg.Context, "err", msg.Err)
 		m.statusBar.SetError(fmt.Errorf("%s: %w", msg.Context, msg.Err))
 		m.statusBar.SetLoading(false)
 		return m, clearErrorAfter(errorDisplayDuration)
@@ -221,7 +222,7 @@ func (m *Model) recalcLayout() {
 	m.help.SetSize(m.width, m.height)
 
 	// Split body into left (issue list) and right (detail)
-	leftW, rightW := common.SplitHorizontal(m.width, m.cfg.UI.ListRatio)
+	leftW, rightW := common.SplitHorizontal(m.width, m.ctx.Config.UI.ListRatio)
 	// m.issueList.SetSize(leftW, bodyH)
 	m.issuepane.SetSize(leftW, bodyH)
 	m.detail.SetSize(rightW, bodyH)

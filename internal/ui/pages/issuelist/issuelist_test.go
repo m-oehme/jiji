@@ -1,6 +1,7 @@
 package issuelist
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/m-oehme/jiji/internal/config"
@@ -9,6 +10,13 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
+
+func testContext() *common.Context {
+	return &common.Context{
+		Config: &config.Config{},
+		Logger: slog.New(slog.DiscardHandler),
+	}
+}
 
 func testCommon() *common.Common {
 	s := styles.NewStyles(config.ThemeConfig{
@@ -24,7 +32,6 @@ func testCommon() *common.Common {
 	})
 	return &common.Common{
 		Styles:  s,
-		Keys:    &config.KeyConfig{},
 		Focused: true,
 	}
 }
@@ -43,7 +50,7 @@ func testIssues() []jira.Issue {
 
 func TestModel_Navigation(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 	m.SetItems(testIssues())
 
 	if m.SelectedIndex() != 0 {
@@ -81,7 +88,7 @@ func TestModel_Navigation(t *testing.T) {
 
 func TestModel_JumpToTopBottom(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 	m.SetItems(testIssues())
 
 	m.JumpToBottom()
@@ -97,7 +104,7 @@ func TestModel_JumpToTopBottom(t *testing.T) {
 
 func TestModel_SelectedIssue(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 
 	// Empty list returns nil
 	if m.SelectedIssue() != nil {
@@ -122,7 +129,7 @@ func TestModel_SelectedIssue(t *testing.T) {
 
 func TestModel_SetItems_CursorClamp(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 	m.SetItems(testIssues())
 	m.JumpToBottom() // cursor = 2
 
@@ -137,7 +144,7 @@ func TestModel_SetItems_CursorClamp(t *testing.T) {
 
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 	m.SetItems(testIssues())
 	m.SetSize(80, 20)
 
@@ -149,7 +156,7 @@ func TestModel_View_NonEmpty(t *testing.T) {
 
 func TestModel_View_ZeroSize(t *testing.T) {
 	c := testCommon()
-	m := New(c, testColumns())
+	m := New(testContext(), c, testColumns())
 	m.SetSize(0, 0)
 
 	if m.View() != "" {

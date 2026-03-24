@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 	lipgloss "charm.land/lipgloss/v2"
 )
 
 // Model represents the status bar at the bottom of the screen.
 type Model struct {
+	ctx          *common.Context
 	styles       *styles.Styles
 	width        int
 	height       int
@@ -22,8 +24,9 @@ type Model struct {
 }
 
 // New creates a new status bar.
-func New(s *styles.Styles) Model {
+func New(ctx *common.Context, s *styles.Styles) Model {
 	return Model{
+		ctx:    ctx,
 		styles: s,
 		height: 1,
 	}

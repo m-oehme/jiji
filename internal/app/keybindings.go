@@ -11,7 +11,7 @@ import (
 // handleKey routes key presses per ADR-009 priority.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
-	m.log.Debug("key press", "key", key, "pane", m.focus.ActivePane(), "overlay", m.focus.HasOverlay(), "jql_focused", m.issuepane.JqlSearch.IsJQLFocused())
+	m.ctx.Logger.Debug("key press", "key", key, "pane", m.focus.ActivePane(), "overlay", m.focus.HasOverlay(), "jql_focused", m.issuepane.JqlSearch.IsJQLFocused())
 
 	// JQL input focused — route all keys to text input except Enter/Esc
 	if m.issuepane.JqlSearch.IsJQLFocused() {
@@ -42,15 +42,15 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // handleOverlayKey handles keys when an overlay is active.
 func (m Model) handleOverlayKey(key string) (tea.Model, tea.Cmd) {
 	switch {
-	case matchKey(key, m.cfg.Keys.Cancel) || key == "esc":
+	case matchKey(key, m.ctx.Config.Keys.Cancel) || key == "esc":
 		m.focus.PopOverlay()
-	case matchKey(key, m.cfg.Keys.Help):
+	case matchKey(key, m.ctx.Config.Keys.Help):
 		if m.focus.TopOverlay() == common.OverlayHelp {
 			m.focus.PopOverlay()
 		}
-	case matchKey(key, m.cfg.Keys.Down):
+	case matchKey(key, m.ctx.Config.Keys.Down):
 		m.help.ScrollDown()
-	case matchKey(key, m.cfg.Keys.Up):
+	case matchKey(key, m.ctx.Config.Keys.Up):
 		m.help.ScrollUp()
 	}
 	return m, nil
@@ -60,14 +60,14 @@ func (m Model) handleOverlayKey(key string) (tea.Model, tea.Cmd) {
 // Returns handled=true if the key was consumed.
 func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 	switch {
-	case matchKey(key, m.cfg.Keys.Help):
+	case matchKey(key, m.ctx.Config.Keys.Help):
 		m.focus.PushOverlay(common.OverlayHelp)
 		return m, nil, true
 
-	case matchKey(key, m.cfg.Keys.Quit):
+	case matchKey(key, m.ctx.Config.Keys.Quit):
 		return m, tea.Quit, true
 
-	case matchKey(key, m.cfg.Keys.TabNext):
+	case matchKey(key, m.ctx.Config.Keys.TabNext):
 		idx := m.tabs.Active() + 1
 		if idx >= m.tabs.Count() {
 			idx = 0
@@ -75,7 +75,7 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 		m.tabs.SetActive(idx)
 		return m, nil, true
 
-	case matchKey(key, m.cfg.Keys.TabPrev):
+	case matchKey(key, m.ctx.Config.Keys.TabPrev):
 		idx := m.tabs.Active() - 1
 		if idx < 0 {
 			idx = m.tabs.Count() - 1
@@ -83,7 +83,7 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 		m.tabs.SetActive(idx)
 		return m, nil, true
 
-	case matchKey(key, m.cfg.Keys.PaneSwitch):
+	case matchKey(key, m.ctx.Config.Keys.PaneSwitch):
 		m.focus.TogglePane()
 		m.syncFocus()
 		return m, nil, true
@@ -106,13 +106,13 @@ func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
 	switch {
-	case matchKey(key, m.cfg.Keys.Confirm) || key == "enter":
+	case matchKey(key, m.ctx.Config.Keys.Confirm) || key == "enter":
 		jql := m.issuepane.JqlSearch.JQLValue()
 		m.issuepane.JqlSearch.UnfocusJQL()
 		m.statusBar.SetLoading(true)
 		return m, m.searchIssues(jql, m.tabs.Active())
 
-	case matchKey(key, m.cfg.Keys.Cancel) || key == "esc":
+	case matchKey(key, m.ctx.Config.Keys.Cancel) || key == "esc":
 		m.issuepane.JqlSearch.UnfocusJQL()
 		return m, nil
 	}
@@ -125,7 +125,7 @@ func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // handleIssueListKey handles keys when the issue list pane is active.
 func (m Model) handleIssueListKey(key string, msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Focus JQL input
-	if matchKey(key, m.cfg.Keys.FocusJQL) {
+	if matchKey(key, m.ctx.Config.Keys.FocusJQL) {
 		cmd := m.issuepane.JqlSearch.FocusJQL()
 		return m, cmd
 	}
@@ -133,13 +133,13 @@ func (m Model) handleIssueListKey(key string, msg tea.KeyPressMsg) (tea.Model, t
 	prevIdx := m.issuepane.IssueList.SelectedIndex()
 
 	switch {
-	case matchKey(key, m.cfg.Keys.Down):
+	case matchKey(key, m.ctx.Config.Keys.Down):
 		m.issuepane.IssueList.MoveDown()
-	case matchKey(key, m.cfg.Keys.Up):
+	case matchKey(key, m.ctx.Config.Keys.Up):
 		m.issuepane.IssueList.MoveUp()
-	case matchKey(key, m.cfg.Keys.Top):
+	case matchKey(key, m.ctx.Config.Keys.Top):
 		m.issuepane.IssueList.JumpToTop()
-	case matchKey(key, m.cfg.Keys.Bottom):
+	case matchKey(key, m.ctx.Config.Keys.Bottom):
 		m.issuepane.IssueList.JumpToBottom()
 	}
 
@@ -162,13 +162,13 @@ func (m Model) handleIssueListKey(key string, msg tea.KeyPressMsg) (tea.Model, t
 // handleDetailKey handles keys when the detail pane is active.
 func (m Model) handleDetailKey(key string) (tea.Model, tea.Cmd) {
 	switch {
-	case matchKey(key, m.cfg.Keys.Down):
+	case matchKey(key, m.ctx.Config.Keys.Down):
 		m.detail.ScrollDown()
-	case matchKey(key, m.cfg.Keys.Up):
+	case matchKey(key, m.ctx.Config.Keys.Up):
 		m.detail.ScrollUp()
-	case matchKey(key, m.cfg.Keys.Top):
+	case matchKey(key, m.ctx.Config.Keys.Top):
 		m.detail.ScrollToTop()
-	case matchKey(key, m.cfg.Keys.Bottom):
+	case matchKey(key, m.ctx.Config.Keys.Bottom):
 		m.detail.ScrollToBottom()
 	}
 	return m, nil

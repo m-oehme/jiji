@@ -12,6 +12,7 @@ import (
 
 // Model represents the issue list page.
 type Model struct {
+	ctx     *common.Context
 	common  *common.Common
 	columns []entry.Column
 	issues  []jira.Issue
@@ -22,8 +23,9 @@ type Model struct {
 }
 
 // New creates a new issue list page.
-func New(c *common.Common, columns []entry.Column) Model {
+func New(ctx *common.Context, c *common.Common, columns []entry.Column) Model {
 	return Model{
+		ctx:     ctx,
 		common:  c,
 		columns: columns,
 	}
@@ -98,7 +100,7 @@ func (m Model) View() string {
 		return ""
 	}
 
-	border := borderbox.New(m.common, m.common.Focused)
+	border := borderbox.New(m.ctx, m.common, m.common.Focused)
 	border.SetSize(m.width, m.height)
 	contentW, contentH := border.GetContentSize()
 
@@ -108,7 +110,7 @@ func (m Model) View() string {
 	}
 
 	// Reusable entry model for rendering rows.
-	e := entry.New(m.common, m.columns)
+	e := entry.New(m.ctx, m.common, m.columns)
 	e.SetSize(contentW)
 
 	// Compute visible window

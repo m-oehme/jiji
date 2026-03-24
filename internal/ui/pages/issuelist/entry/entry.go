@@ -60,6 +60,7 @@ func ColumnsFromConfig(fieldIDs []string) []Column {
 // Model renders a single issue row. Create one and reuse it across rows
 // by calling SetIssue + SetSelected before each View().
 type Model struct {
+	ctx      *common.Context
 	common   *common.Common
 	columns  []Column
 	issue    jira.Issue
@@ -68,8 +69,9 @@ type Model struct {
 }
 
 // New creates a new entry model with the given columns.
-func New(c *common.Common, columns []Column) Model {
+func New(ctx *common.Context, c *common.Common, columns []Column) Model {
 	return Model{
+		ctx:     ctx,
 		common:  c,
 		columns: columns,
 	}

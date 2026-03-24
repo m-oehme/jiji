@@ -11,6 +11,7 @@ import (
 
 // Model is the detail pane orchestrator: metadata banner + scrollable content.
 type Model struct {
+	ctx      *common.Context
 	common   *common.Common
 	issue    *jira.Issue
 	comments []jira.Comment
@@ -21,8 +22,9 @@ type Model struct {
 }
 
 // New creates a new detail pane.
-func New(c *common.Common) Model {
+func New(ctx *common.Context, c *common.Common) Model {
 	return Model{
+		ctx:    ctx,
 		common: c,
 	}
 }
@@ -111,7 +113,7 @@ func (m Model) View() string {
 		return ""
 	}
 
-	border := borderbox.New(m.common, m.common.Focused)
+	border := borderbox.New(m.ctx, m.common, m.common.Focused)
 	border.SetSize(m.width, m.height)
 	contentW, contentH := border.GetContentSize()
 

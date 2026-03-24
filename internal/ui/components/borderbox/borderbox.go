@@ -8,6 +8,7 @@ import (
 )
 
 type Model struct {
+	ctx    *common.Context
 	common *common.Common
 
 	style lipgloss.Style
@@ -16,12 +17,13 @@ type Model struct {
 	height int
 }
 
-func New(c *common.Common, focused bool) Model {
+func New(ctx *common.Context, c *common.Common, focused bool) Model {
 	borderStyle := c.Styles.Border
 	if focused {
 		borderStyle = c.Styles.BorderFocused
 	}
 	return Model{
+		ctx:    ctx,
 		common: c,
 		style:  borderStyle,
 	}
