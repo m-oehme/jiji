@@ -10,27 +10,22 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 )
 
-// Column widths for the issue table.
-const (
-	colKeyWidth      = 12
-	colPriorityWidth = 3
-	colAssigneeWidth = 15
-)
-
 // Model represents the issue list page.
 type Model struct {
-	common *common.Common
-	issues []jira.Issue
-	cursor int
-	offset int // first visible row index for scrolling
-	width  int
-	height int
+	common  *common.Common
+	columns []entry.Column
+	issues  []jira.Issue
+	cursor  int
+	offset  int // first visible row index for scrolling
+	width   int
+	height  int
 }
 
 // New creates a new issue list page.
-func New(c *common.Common) Model {
+func New(c *common.Common, columns []entry.Column) Model {
 	return Model{
-		common: c,
+		common:  c,
+		columns: columns,
 	}
 }
 
@@ -107,20 +102,22 @@ func (m Model) View() string {
 	border.SetSize(m.width, m.height)
 	contentW, contentH := border.GetContentSize()
 
-	// Header
-	header := entry.RenderHeader(m.common, contentW)
-
-	// Row space = content height minus JQL and header lines
-	rowSpace := contentH - 1
+	rowSpace := contentH
 	if rowSpace < 0 {
 		rowSpace = 0
 	}
+
+	// Reusable entry model for rendering rows.
+	e := entry.New(m.common, m.columns)
+	e.SetSize(contentW)
 
 	// Compute visible window
 	start, end := m.visibleRange(rowSpace)
 	var rows []string
 	for i := start; i < end; i++ {
-		rows = append(rows, entry.RenderListEntry(m.common, m.issues[i], contentW, i == m.cursor))
+		e.SetIssue(m.issues[i])
+		e.SetSelected(i == m.cursor)
+		rows = append(rows, e.View())
 	}
 
 	// Pad remaining lines
@@ -128,7 +125,7 @@ func (m Model) View() string {
 		rows = append(rows, strings.Repeat(" ", contentW))
 	}
 
-	content := header + "\n" + strings.Join(rows, "\n")
+	content := strings.Join(rows, "\n")
 
 	return border.Render(content, "Issues")
 }

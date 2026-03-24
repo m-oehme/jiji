@@ -5,6 +5,7 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/components/jqlsearch"
 	"github.com/m-oehme/jiji/internal/ui/pages/issuelist"
+	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 )
 
 // Model represents the issue list page.
@@ -18,8 +19,8 @@ type Model struct {
 }
 
 // New creates a new issue list page.
-func New(c *common.Common) Model {
-	issuelist := issuelist.New(c)
+func New(c *common.Common, columns []entry.Column) Model {
+	issuelist := issuelist.New(c, columns)
 	jqlsearch := jqlsearch.New(c)
 	return Model{
 		common:    c,

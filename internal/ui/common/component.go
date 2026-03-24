@@ -4,7 +4,6 @@ package common
 import (
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/m-oehme/jiji/internal/config"
@@ -33,7 +32,7 @@ func Truncate(s string, maxLen int) string {
 	if maxLen <= 0 {
 		return ""
 	}
-	if utf8.RuneCountInString(trimed) <= maxLen-1 {
+	if runewidth.StringWidth(trimed) <= maxLen {
 		return trimed
 	}
 	if maxLen <= 1 {

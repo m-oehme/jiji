@@ -6,6 +6,7 @@ import (
 	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
+	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
@@ -28,6 +29,10 @@ func testCommon() *common.Common {
 	}
 }
 
+func testColumns() []entry.Column {
+	return entry.ColumnsFromConfig([]string{"key", "priority", "assignee", "summary"})
+}
+
 func testIssues() []jira.Issue {
 	return []jira.Issue{
 		{Key: "TEST-1", Summary: "First issue", Priority: "High", Assignee: "Alice"},
@@ -38,7 +43,7 @@ func testIssues() []jira.Issue {
 
 func TestModel_Navigation(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 	m.SetItems(testIssues())
 
 	if m.SelectedIndex() != 0 {
@@ -76,7 +81,7 @@ func TestModel_Navigation(t *testing.T) {
 
 func TestModel_JumpToTopBottom(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 	m.SetItems(testIssues())
 
 	m.JumpToBottom()
@@ -92,7 +97,7 @@ func TestModel_JumpToTopBottom(t *testing.T) {
 
 func TestModel_SelectedIssue(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 
 	// Empty list returns nil
 	if m.SelectedIssue() != nil {
@@ -117,7 +122,7 @@ func TestModel_SelectedIssue(t *testing.T) {
 
 func TestModel_SetItems_CursorClamp(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 	m.SetItems(testIssues())
 	m.JumpToBottom() // cursor = 2
 
@@ -132,7 +137,7 @@ func TestModel_SetItems_CursorClamp(t *testing.T) {
 
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 	m.SetItems(testIssues())
 	m.SetSize(80, 20)
 
@@ -144,7 +149,7 @@ func TestModel_View_NonEmpty(t *testing.T) {
 
 func TestModel_View_ZeroSize(t *testing.T) {
 	c := testCommon()
-	m := New(c)
+	m := New(c, testColumns())
 	m.SetSize(0, 0)
 
 	if m.View() != "" {

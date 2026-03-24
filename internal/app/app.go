@@ -17,6 +17,7 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/components/statusbar"
 	"github.com/m-oehme/jiji/internal/ui/components/tabs"
 	"github.com/m-oehme/jiji/internal/ui/pages/detail"
+	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 	"github.com/m-oehme/jiji/internal/ui/pages/issuepane"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
@@ -78,7 +79,7 @@ func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 		tabs:         tabs.New(cfg.Tabs, s),
 		statusBar:    statusbar.New(s),
 		help:         help.New(&cfg.Keys, s),
-		issuepane:    issuepane.New(listCommon),
+		issuepane:    issuepane.New(listCommon, entry.ColumnsFromConfig(cfg.UI.Fields.List)),
 		detail:       detail.New(detailCommon),
 	}
 

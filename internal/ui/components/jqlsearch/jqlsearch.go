@@ -56,7 +56,7 @@ func (m *Model) View() string {
 		return ""
 	}
 
-	border := borderbox.New(m.common, m.jqlFocus)
+	border := borderbox.New(m.common, m.common.Focused)
 	border.SetSize(m.width, m.height)
 	contentW, _ := border.GetContentSize()
 
