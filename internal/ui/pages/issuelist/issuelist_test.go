@@ -7,7 +7,6 @@ import (
 	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
-	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
@@ -40,10 +39,6 @@ func testCommon() *common.Common {
 		Styles:  s,
 		Focused: true,
 	}
-}
-
-func testColumns() []entry.Column {
-	return entry.ColumnsFromConfig([]string{"key", "priority", "assignee", "summary"})
 }
 
 func testIssues() []jira.Issue {

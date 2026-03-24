@@ -59,7 +59,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error creating debug log: %s\n", err)
 			os.Exit(1)
 		}
-		defer f.Close()
+		defer func() {
+			if cerr := f.Close(); cerr != nil {
+				fmt.Fprintf(os.Stderr, "Error closing debug log: %s\n", cerr)
+			}
+		}()
 		logger = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		logger.Info("debug logging enabled", "path", logPath)
 	} else {

@@ -116,8 +116,12 @@ func TestIssue_JSONMarshal(t *testing.T) {
 
 	// Verify ADF roundtrips through json.RawMessage
 	var origDoc, decodedDoc map[string]any
-	json.Unmarshal(issue.Description, &origDoc)
-	json.Unmarshal(decoded.Description, &decodedDoc)
+	if err := json.Unmarshal(issue.Description, &origDoc); err != nil {
+		t.Fatalf("unmarshal original ADF: %v", err)
+	}
+	if err := json.Unmarshal(decoded.Description, &decodedDoc); err != nil {
+		t.Fatalf("unmarshal decoded ADF: %v", err)
+	}
 
 	if origDoc["type"] != decodedDoc["type"] {
 		t.Error("ADF type changed after roundtrip")
