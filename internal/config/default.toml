@@ -8,7 +8,7 @@ detail_layout = "stacked" # "stacked" or "side-by-side"
 editor = ""               # External editor. Falls back to $EDITOR, then "vi"
 
 [ui.fields]
-list = ["key", "summary", "assignee", "priority"]
+list = ["key", "priority", "summary", "assignee"]
 
 [[tabs]]
 name = "My Issues"

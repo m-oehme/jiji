@@ -3,10 +3,12 @@ package entry
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
+	"github.com/mattn/go-runewidth"
 )
 
 // Column defines a single column in the issue list.
@@ -123,7 +125,10 @@ func (m Model) View() string {
 		if c.ID != "priority" {
 			val = common.Truncate(val, w)
 		}
-		fmt.Fprintf(&row, "%-*s", w, val)
+
+		displayWidth := w - runewidth.StringWidth(val) + utf8.RuneCountInString(val)
+
+		fmt.Fprintf(&row, "%-*s", displayWidth, val)
 	}
 
 	rendered := common.Truncate(row.String(), m.width)
