@@ -69,7 +69,8 @@ type Model struct {
 }
 
 // New creates a new entry model with the given columns.
-func New(ctx *common.Context, c *common.Common, columns []Column) Model {
+func New(ctx *common.Context, c *common.Common) Model {
+	columns := ColumnsFromConfig(ctx.Config.UI.Fields.List)
 	return Model{
 		ctx:     ctx,
 		common:  c,

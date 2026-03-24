@@ -12,22 +12,20 @@ import (
 
 // Model represents the issue list page.
 type Model struct {
-	ctx     *common.Context
-	common  *common.Common
-	columns []entry.Column
-	issues  []jira.Issue
-	cursor  int
-	offset  int // first visible row index for scrolling
-	width   int
-	height  int
+	ctx    *common.Context
+	common *common.Common
+	issues []jira.Issue
+	cursor int
+	offset int // first visible row index for scrolling
+	width  int
+	height int
 }
 
 // New creates a new issue list page.
-func New(ctx *common.Context, c *common.Common, columns []entry.Column) Model {
+func New(ctx *common.Context, c *common.Common) Model {
 	return Model{
-		ctx:     ctx,
-		common:  c,
-		columns: columns,
+		ctx:    ctx,
+		common: c,
 	}
 }
 
@@ -110,7 +108,7 @@ func (m Model) View() string {
 	}
 
 	// Reusable entry model for rendering rows.
-	e := entry.New(m.ctx, m.common, m.columns)
+	e := entry.New(m.ctx, m.common)
 	e.SetSize(contentW)
 
 	// Compute visible window

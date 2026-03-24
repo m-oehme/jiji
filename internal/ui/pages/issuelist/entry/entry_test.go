@@ -10,9 +10,15 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
-func testContext() *common.Context {
+func testContext(cols []string) *common.Context {
 	return &common.Context{
-		Config: &config.Config{},
+		Config: &config.Config{
+			UI: config.UIConfig{
+				Fields: config.FieldsConfig{
+					List: cols,
+				},
+			},
+		},
 		Logger: slog.New(slog.DiscardHandler),
 	}
 }
@@ -88,8 +94,8 @@ func TestColumnsFromConfig_Empty(t *testing.T) {
 
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
-	cols := ColumnsFromConfig([]string{"key", "priority", "assignee", "summary"})
-	m := New(testContext(), c, cols)
+	cols := []string{"key", "priority", "assignee", "summary"}
+	m := New(testContext(cols), c)
 	m.SetSize(80)
 	m.SetIssue(jira.Issue{Key: "TEST-1", Summary: "A summary", Priority: "High", Assignee: "Alice"})
 	m.SetSelected(false)
@@ -102,8 +108,8 @@ func TestModel_View_NonEmpty(t *testing.T) {
 
 func TestModel_View_ZeroWidth(t *testing.T) {
 	c := testCommon()
-	cols := ColumnsFromConfig([]string{"key", "summary"})
-	m := New(testContext(), c, cols)
+	cols := []string{"key", "summary"}
+	m := New(testContext(cols), c)
 	m.SetSize(0)
 
 	if m.View() != "" {

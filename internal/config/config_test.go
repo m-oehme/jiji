@@ -18,8 +18,8 @@ func testDefaults(t *testing.T) *Config {
 func TestDefaults(t *testing.T) {
 	cfg := testDefaults(t)
 
-	if cfg.UI.ListRatio != 30 {
-		t.Errorf("expected list_ratio 30, got %d", cfg.UI.ListRatio)
+	if cfg.UI.ListRatio != 40 {
+		t.Errorf("expected list_ratio 40, got %d", cfg.UI.ListRatio)
 	}
 	if cfg.UI.DetailLayout != "stacked" {
 		t.Errorf("expected detail_layout stacked, got %q", cfg.UI.DetailLayout)
@@ -225,8 +225,8 @@ func TestLoad_NoUserConfig(t *testing.T) {
 	}
 
 	// Should return defaults
-	if cfg.UI.ListRatio != 30 {
-		t.Errorf("expected default list_ratio 30, got %d", cfg.UI.ListRatio)
+	if cfg.UI.ListRatio != 40 {
+		t.Errorf("expected default list_ratio 40, got %d", cfg.UI.ListRatio)
 	}
 
 	// Keybinding defaults should be populated
