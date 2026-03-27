@@ -22,7 +22,7 @@ jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DES
 # name = "Sprint"
 # jql = "sprint in openSprints() AND project = MYPROJ ORDER BY rank ASC"
 
-[keybindings]
+[keybindings.builtin]
 up = ["k", "up"]
 down = ["j", "down"]
 tab_next = ["l", "right"]
@@ -41,6 +41,14 @@ labels = ["L"]
 summary = ["s"]
 edit = ["e"]
 refresh = ["r"]
+
+#[[keybindings.user.global]]
+#key = "V"
+#command = "nvim"
+
+#[[keybindings.user.issues]]
+#key = "H"
+#command = "claude 'pull jira ticket {{ .Key }}'"
 
 [theme]
 primary = "#7C3AED"

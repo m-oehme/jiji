@@ -53,7 +53,7 @@ type Config struct {
 	Jira  JiraConnection // from CLI/env, not from file
 	UI    UIConfig       `koanf:"ui"`
 	Tabs  []TabConfig    `koanf:"tabs"`
-	Keys  KeyConfig      `koanf:"keybindings"`
+	Keys  Keybindings    `koanf:"keybindings"`
 	Theme ThemeConfig    `koanf:"theme"`
 	Cache CacheConfig    `koanf:"cache"`
 }
@@ -78,9 +78,15 @@ type TabConfig struct {
 	JQL  string `koanf:"jql"`
 }
 
-// KeyConfig holds user-provided keybinding overrides.
+// Keybindings holds builtin and user keybinding layers.
+type Keybindings struct {
+	Builtin BuiltinKeybindings `koanf:"builtin"`
+	User    UserKeybinding     `koanf:"user"`
+}
+
+// BuiltinKeybindings holds the default keybinding definitions.
 // Each key is a list of bindings (e.g. ["k", "up"]).
-type KeyConfig struct {
+type BuiltinKeybindings struct {
 	Up         []string `koanf:"up"`
 	Down       []string `koanf:"down"`
 	TabNext    []string `koanf:"tab_next"`
@@ -99,6 +105,22 @@ type KeyConfig struct {
 	Summary    []string `koanf:"summary"`
 	Edit       []string `koanf:"edit"`
 	Refresh    []string `koanf:"refresh"`
+}
+
+// UserKeybinding holds custom user keybinding overrides.
+type UserKeybinding struct {
+	Global []GlobalUserKeybindings `koanf:"global"`
+	Issues []IssuesUserKeybindings `koanf:"issues"`
+}
+
+type GlobalUserKeybindings struct {
+	Key     string `koanf:"key"`
+	Command string `koanf:"command"`
+}
+
+type IssuesUserKeybindings struct {
+	Key     string `koanf:"key"`
+	Command string `koanf:"command"`
 }
 
 // CacheConfig controls in-memory caching behavior.

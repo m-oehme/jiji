@@ -20,7 +20,7 @@ test:
 	go test ./...
 
 watch:
-	watchexec -e go -r make run
+	watchexec -e go -e toml -r make run
 
 clean:
 	rm -rf bin/

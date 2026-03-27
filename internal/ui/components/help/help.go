@@ -66,7 +66,7 @@ func (m *Model) innerHeight() int {
 }
 
 func (m *Model) build() {
-	keys := &m.ctx.Config.Keys
+	keys := &m.ctx.Config.Keys.Builtin
 	bindings := []binding{
 		{"Move up", keys.Up},
 		{"Move down", keys.Down},

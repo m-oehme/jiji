@@ -37,10 +37,10 @@ func TestDefaults(t *testing.T) {
 		t.Errorf("expected theme.primary #7C3AED, got %q", cfg.Theme.Primary)
 	}
 	// Keybinding defaults should be populated (was a bug before embed)
-	if len(cfg.Keys.Up) == 0 {
+	if len(cfg.Keys.Builtin.Up) == 0 {
 		t.Error("expected keybinding defaults for 'up' to be populated")
 	}
-	if len(cfg.Keys.Quit) == 0 {
+	if len(cfg.Keys.Builtin.Quit) == 0 {
 		t.Error("expected keybinding defaults for 'quit' to be populated")
 	}
 }
@@ -230,10 +230,10 @@ func TestLoad_NoUserConfig(t *testing.T) {
 	}
 
 	// Keybinding defaults should be populated
-	if len(cfg.Keys.Up) != 2 || cfg.Keys.Up[0] != "k" {
-		t.Errorf("expected keybinding up=[k, up], got %v", cfg.Keys.Up)
+	if len(cfg.Keys.Builtin.Up) != 2 || cfg.Keys.Builtin.Up[0] != "k" {
+		t.Errorf("expected keybinding up=[k, up], got %v", cfg.Keys.Builtin.Up)
 	}
-	if len(cfg.Keys.Quit) != 1 || cfg.Keys.Quit[0] != "q" {
-		t.Errorf("expected keybinding quit=[q], got %v", cfg.Keys.Quit)
+	if len(cfg.Keys.Builtin.Quit) != 1 || cfg.Keys.Builtin.Quit[0] != "q" {
+		t.Errorf("expected keybinding quit=[q], got %v", cfg.Keys.Builtin.Quit)
 	}
 }
