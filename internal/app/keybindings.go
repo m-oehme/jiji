@@ -227,7 +227,7 @@ func (m *Model) executeShellCommand(cmd string) tea.Cmd {
 	if shell == "" {
 		shell = "sh"
 	}
-	c := exec.Command(shell, "-c", cmd)
+	c := exec.Command(shell, "-ic", cmd)
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		if err != nil {
 			return ErrorMsg{
