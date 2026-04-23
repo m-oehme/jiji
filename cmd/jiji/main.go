@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 
@@ -68,6 +70,15 @@ func main() {
 		logger.Info("debug logging enabled", "path", logPath)
 	} else {
 		logger = slog.New(slog.DiscardHandler)
+	}
+
+	if cli.Pprof {
+		go func() {
+			logger.Info("pprof server listening", "addr", "localhost:6060")
+			if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+				logger.Error("pprof server failed", "err", err)
+			}
+		}()
 	}
 
 	m := app.New(cfg, client, logger)

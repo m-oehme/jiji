@@ -25,6 +25,7 @@ type CLI struct {
 	Token   string `kong:"help='Jira API token',env='JIJI_JIRA_TOKEN',short='t'"`
 	Version bool   `kong:"help='Print version and exit',short='v'"`
 	Debug   bool   `kong:"help='Write debug logs to ~/.cache/jiji/debug.log',short='d'"`
+	Pprof   bool   `kong:"help='Start pprof HTTP server on localhost:6060',short='p'"`
 }
 
 // ValidateConnection checks that all required Jira connection fields are set.
