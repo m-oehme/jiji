@@ -78,20 +78,18 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 		if idx >= m.tabs.Count() {
 			idx = 0
 		}
-		m.tabs.SetActive(idx)
-		jql := m.tabs.ActiveTab().JQL
-		m.issuepane.JqlSearch.SetJQL(jql)
-		m.statusBar.SetLoading(true)
-		return m, m.searchIssues(jql, idx), true
+		return m, m.switchTab(idx), true
 
 	case matchKey(key, m.ctx.Config.Keys.Builtin.TabPrev):
 		idx := m.tabs.Active() - 1
 		if idx < 0 {
 			idx = m.tabs.Count() - 1
 		}
-		m.tabs.SetActive(idx)
-		jql := m.tabs.ActiveTab().JQL
-		m.issuepane.JqlSearch.SetJQL(jql)
+		return m, m.switchTab(idx), true
+	case matchKey(key, m.ctx.Config.Keys.Builtin.Refresh):
+		idx := m.tabs.Active()
+		jql := m.issuepane.JqlSearch.JQLValue()
+		delete(m.tabCache, idx)
 		m.statusBar.SetLoading(true)
 		return m, m.searchIssues(jql, idx), true
 
@@ -104,7 +102,7 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 	case key >= "1" && key <= "9":
 		idx := int(key[0]-'0') - 1
 		if idx < m.tabs.Count() {
-			m.tabs.SetActive(idx)
+			return m, m.switchTab(idx), true
 		}
 		return m, nil, true
 	}
@@ -122,6 +120,7 @@ func (m Model) handleJQLKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		jql := m.issuepane.JqlSearch.JQLValue()
 		m.issuepane.JqlSearch.UnfocusJQL()
 		m.statusBar.SetLoading(true)
+		delete(m.tabCache, m.tabs.Active())
 		return m, m.searchIssues(jql, m.tabs.Active())
 
 	case matchKey(key, m.ctx.Config.Keys.Builtin.Cancel) || key == "esc":

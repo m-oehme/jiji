@@ -38,6 +38,10 @@ func (m *Model) SetItems(issues []jira.Issue) {
 	m.offset = 0
 }
 
+func (m *Model) Items() []jira.Issue {
+	return m.issues
+}
+
 // SelectedIssue returns the issue at the cursor, or nil if empty.
 func (m *Model) SelectedIssue() *jira.Issue {
 	if len(m.issues) == 0 || m.cursor < 0 || m.cursor >= len(m.issues) {
@@ -49,6 +53,21 @@ func (m *Model) SelectedIssue() *jira.Issue {
 // SelectedIndex returns the cursor position.
 func (m *Model) SelectedIndex() int {
 	return m.cursor
+}
+
+func (m *Model) Offset() int {
+	return m.offset
+}
+
+// Restore the cursor and offset
+func (m *Model) Restore(cursor, offset int) {
+	if len(m.issues) == 0 {
+		m.cursor = 0
+		m.offset = 0
+		return
+	}
+	m.cursor = min(cursor, len(m.issues)-1)
+	m.offset = min(offset, max(0, len(m.issues)-1))
 }
 
 // MoveUp moves the cursor up by one.

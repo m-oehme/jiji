@@ -24,6 +24,13 @@ import (
 // errorDisplayDuration is how long error messages show before auto-clearing.
 const errorDisplayDuration = 5 * time.Second
 
+type tabCache struct {
+	Issues   []jira.Issue
+	NextPage jira.PageToken
+	Cursor   int
+	Offset   int
+}
+
 // Model is the root tea.Model composing all UI elements (ADR-002, ADR-009, ADR-010).
 type Model struct {
 	ctx    *common.Context
@@ -35,6 +42,8 @@ type Model struct {
 	// Shared common state for left and right panes
 	listCommon   *common.Common
 	detailCommon *common.Common
+
+	tabCache map[int]*tabCache
 
 	// Components
 	tabs      tabs.Model
@@ -76,6 +85,7 @@ func New(cfg *config.Config, client jira.Client, log *slog.Logger) Model {
 		styles:       s,
 		listCommon:   listCommon,
 		detailCommon: detailCommon,
+		tabCache:     make(map[int]*tabCache),
 		tabs:         tabs.New(ctx, cfg.Tabs, s),
 		statusBar:    statusbar.New(ctx, s),
 		help:         help.New(ctx, s),
@@ -128,6 +138,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.issuepane.IssueList.SetItems(msg.Issues)
 		m.statusBar.SetLoading(false)
 		m.statusBar.SetIssueCount(len(msg.Issues))
+
+		m.tabCache[msg.TabIndex] = &tabCache{
+			Issues:   msg.Issues,
+			NextPage: msg.NextPage,
+			Cursor:   0,
+			Offset:   0,
+		}
+
 		// Auto-select first issue and load detail
 		if len(msg.Issues) > 0 {
 			m.issuepane.IssueList.JumpToTop()
@@ -167,6 +185,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *Model) saveTabState() {
+	idx := m.tabs.Active()
+	items := m.issuepane.IssueList.Items()
+	if items == nil {
+		return
+	}
+	m.tabCache[idx] = &tabCache{
+		Issues: items,
+		Cursor: m.issuepane.IssueList.SelectedIndex(),
+		Offset: m.issuepane.IssueList.Offset(),
+	}
+}
+
+func (m *Model) switchTab(idx int) tea.Cmd {
+	if idx == m.tabs.Active() {
+		return nil
+	}
+
+	m.saveTabState()
+
+	m.tabs.SetActive(idx)
+	jql := m.tabs.ActiveTab().JQL
+	m.issuepane.JqlSearch.SetJQL(jql)
+
+	if cached, ok := m.tabCache[idx]; ok {
+		m.issuepane.IssueList.SetItems(cached.Issues)
+		m.issuepane.IssueList.Restore(cached.Cursor, cached.Offset)
+		m.statusBar.SetLoading(false)
+		m.statusBar.SetIssueCount(len(cached.Issues))
+		if sel := m.issuepane.IssueList.SelectedIssue(); sel != nil {
+			m.statusBar.SetCurrentIssue(sel.Key)
+			return tea.Batch(
+				m.loadIssueDetail(sel.Key),
+				m.loadComments(sel.Key),
+			)
+		}
+		return nil
+	}
+
+	m.statusBar.SetLoading(true)
+	return m.searchIssues(jql, idx)
 }
 
 // View composes the full layout.
