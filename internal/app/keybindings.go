@@ -79,7 +79,10 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 			idx = 0
 		}
 		m.tabs.SetActive(idx)
-		return m, nil, true
+		jql := m.tabs.ActiveTab().JQL
+		m.issuepane.JqlSearch.SetJQL(jql)
+		m.statusBar.SetLoading(true)
+		return m, m.searchIssues(jql, idx), true
 
 	case matchKey(key, m.ctx.Config.Keys.Builtin.TabPrev):
 		idx := m.tabs.Active() - 1
@@ -87,7 +90,10 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 			idx = m.tabs.Count() - 1
 		}
 		m.tabs.SetActive(idx)
-		return m, nil, true
+		jql := m.tabs.ActiveTab().JQL
+		m.issuepane.JqlSearch.SetJQL(jql)
+		m.statusBar.SetLoading(true)
+		return m, m.searchIssues(jql, idx), true
 
 	case matchKey(key, m.ctx.Config.Keys.Builtin.PaneSwitch):
 		m.focus.TogglePane()
