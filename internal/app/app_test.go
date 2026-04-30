@@ -73,7 +73,11 @@ func testConfig() *config.Config {
 			DetailLayout: "stacked",
 		},
 		Tabs: []config.TabConfig{
-			{Name: "My Issues", JQL: "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC"},
+			{
+				Name:     "My Issues",
+				JQL:      "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC",
+				Sections: config.SectionsConfig{Enabled: false},
+			},
 		},
 		Keys: config.Keybindings{
 			Builtin: config.BuiltinKeybindings{
@@ -139,7 +143,7 @@ func setupModel(t *testing.T) Model {
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	m = sized.(Model)
 	// Simulate search results arriving
-	m.issuepane.IssueList.SetItems(client.issues)
+	m.issuepane.IssueList.SetItems(client.issues, m.tabs.ActiveTab().Sections)
 	m.statusBar.SetIssueCount(len(client.issues))
 	if sel := m.issuepane.IssueList.SelectedIssue(); sel != nil {
 		m.statusBar.SetCurrentIssue(sel.Key)

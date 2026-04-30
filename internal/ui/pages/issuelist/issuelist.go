@@ -4,10 +4,12 @@ package issuelist
 import (
 	"strings"
 
+	"github.com/m-oehme/jiji/internal/config"
 	"github.com/m-oehme/jiji/internal/jira"
 	"github.com/m-oehme/jiji/internal/ui/common"
 	"github.com/m-oehme/jiji/internal/ui/components/borderbox"
 	"github.com/m-oehme/jiji/internal/ui/pages/issuelist/entry"
+	"github.com/mattn/go-runewidth"
 )
 
 // Model represents the issue list page.
@@ -15,6 +17,7 @@ type Model struct {
 	ctx    *common.Context
 	common *common.Common
 	issues []jira.Issue
+	rows   []Row
 	cursor int
 	offset int // first visible row index for scrolling
 	width  int
@@ -30,8 +33,9 @@ func New(ctx *common.Context, c *common.Common) Model {
 }
 
 // SetItems replaces the issue list.
-func (m *Model) SetItems(issues []jira.Issue) {
+func (m *Model) SetItems(issues []jira.Issue, sections config.SectionsConfig) {
 	m.issues = issues
+	m.rows = BuildRows(issues, sections)
 	if m.cursor >= len(issues) {
 		m.cursor = max(0, len(issues)-1)
 	}
@@ -72,32 +76,33 @@ func (m *Model) Restore(cursor, offset int) {
 
 // MoveUp moves the cursor up by one.
 func (m *Model) MoveUp() {
-	if m.cursor > 0 {
-		m.cursor--
-		if m.cursor < m.offset {
-			m.offset = m.cursor
+	for prev := m.cursor - 1; prev >= 0; prev-- {
+		if !m.isHeader(prev) {
+			m.cursor = prev
+			return
 		}
 	}
 }
 
 // MoveDown moves the cursor down by one.
 func (m *Model) MoveDown() {
-	if m.cursor < len(m.issues)-1 {
-		m.cursor++
+	for next := m.cursor + 1; next < len(m.rows); next++ {
+		if !m.isHeader(next) {
+			m.cursor = next
+			return
+		}
 	}
 }
 
 // JumpToTop moves the cursor to the first issue.
 func (m *Model) JumpToTop() {
-	m.cursor = 0
+	m.cursor = m.firstIssueIndex()
 	m.offset = 0
 }
 
 // JumpToBottom moves the cursor to the last issue.
 func (m *Model) JumpToBottom() {
-	if len(m.issues) > 0 {
-		m.cursor = len(m.issues) - 1
-	}
+	m.cursor = m.lastIssueIndex()
 }
 
 // SetFocused updates the focused state.
@@ -109,6 +114,28 @@ func (m *Model) SetFocused(focused bool) {
 func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
+}
+
+func (m *Model) isHeader(i int) bool {
+	return i >= 0 && i < len(m.rows) && m.rows[i].Header != ""
+}
+
+func (m *Model) firstIssueIndex() int {
+	for i, r := range m.rows {
+		if r.Issue != nil {
+			return i
+		}
+	}
+	return 0
+}
+
+func (m *Model) lastIssueIndex() int {
+	for i := len(m.rows) - 1; i >= 0; i-- {
+		if m.rows[i].Issue != nil {
+			return i
+		}
+	}
+	return 0
 }
 
 // View renders the issue list pane.
@@ -134,9 +161,16 @@ func (m Model) View() string {
 	start, end := m.visibleRange(rowSpace)
 	var rows []string
 	for i := start; i < end; i++ {
-		e.SetIssue(m.issues[i])
-		e.SetSelected(i == m.cursor)
-		rows = append(rows, e.View())
+		row := m.rows[i]
+		if row.Issue == nil {
+			rows = append(rows, m.common.Styles.Dimmed.Render(
+				renderSectionHeader(row.Header, contentW),
+			))
+		} else {
+			e.SetIssue(*row.Issue)
+			e.SetSelected(i == m.cursor)
+			rows = append(rows, e.View())
+		}
 	}
 
 	// Pad remaining lines
@@ -149,9 +183,18 @@ func (m Model) View() string {
 	return border.Render(content, "Issues")
 }
 
+func renderSectionHeader(title string, width int) string {
+	prefix := "─── " + title + " "
+	remaining := width - runewidth.StringWidth(prefix)
+	if remaining > 0 {
+		return prefix + strings.Repeat("─", remaining)
+	}
+	return common.Truncate(prefix, width)
+}
+
 // visibleRange returns the slice of issues to render, keeping the cursor visible.
 func (m Model) visibleRange(viewportH int) (start, end int) {
-	total := len(m.issues)
+	total := len(m.rows)
 	if total == 0 || viewportH <= 0 {
 		return 0, 0
 	}

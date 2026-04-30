@@ -10,6 +10,12 @@ import (
 	"github.com/m-oehme/jiji/internal/ui/styles"
 )
 
+func testSectionsConfig() config.SectionsConfig {
+	return config.SectionsConfig{
+		Enabled: false,
+	}
+}
+
 func testContext() *common.Context {
 	return &common.Context{
 		Config: &config.Config{
@@ -52,7 +58,7 @@ func testIssues() []jira.Issue {
 func TestModel_Navigation(t *testing.T) {
 	c := testCommon()
 	m := New(testContext(), c)
-	m.SetItems(testIssues())
+	m.SetItems(testIssues(), testSectionsConfig())
 
 	if m.SelectedIndex() != 0 {
 		t.Fatalf("expected index 0, got %d", m.SelectedIndex())
@@ -90,7 +96,7 @@ func TestModel_Navigation(t *testing.T) {
 func TestModel_JumpToTopBottom(t *testing.T) {
 	c := testCommon()
 	m := New(testContext(), c)
-	m.SetItems(testIssues())
+	m.SetItems(testIssues(), testSectionsConfig())
 
 	m.JumpToBottom()
 	if m.SelectedIndex() != 2 {
@@ -112,7 +118,7 @@ func TestModel_SelectedIssue(t *testing.T) {
 		t.Fatal("expected nil for empty list")
 	}
 
-	m.SetItems(testIssues())
+	m.SetItems(testIssues(), testSectionsConfig())
 	sel := m.SelectedIssue()
 	if sel == nil {
 		t.Fatal("expected non-nil selected issue")
@@ -131,13 +137,13 @@ func TestModel_SelectedIssue(t *testing.T) {
 func TestModel_SetItems_CursorClamp(t *testing.T) {
 	c := testCommon()
 	m := New(testContext(), c)
-	m.SetItems(testIssues())
+	m.SetItems(testIssues(), testSectionsConfig())
 	m.JumpToBottom() // cursor = 2
 
 	// Replace with shorter list
 	m.SetItems([]jira.Issue{
 		{Key: "TEST-1", Summary: "Only one"},
-	})
+	}, testSectionsConfig())
 	if m.SelectedIndex() != 0 {
 		t.Fatalf("expected cursor clamped to 0, got %d", m.SelectedIndex())
 	}
@@ -146,7 +152,7 @@ func TestModel_SetItems_CursorClamp(t *testing.T) {
 func TestModel_View_NonEmpty(t *testing.T) {
 	c := testCommon()
 	m := New(testContext(), c)
-	m.SetItems(testIssues())
+	m.SetItems(testIssues(), testSectionsConfig())
 	m.SetSize(80, 20)
 
 	view := m.View()

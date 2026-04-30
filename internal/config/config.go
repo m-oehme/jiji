@@ -75,8 +75,16 @@ type FieldsConfig struct {
 
 // TabConfig defines a named tab with a JQL query.
 type TabConfig struct {
-	Name string `koanf:"name"`
-	JQL  string `koanf:"jql"`
+	Name     string         `koanf:"name"`
+	JQL      string         `koanf:"jql"`
+	Sections SectionsConfig `koanf:"sections"`
+}
+
+type SectionsConfig struct {
+	Enabled          bool     `koanf:"enabled"`
+	Field            string   `koanf:"field"`
+	Values           []string `koanf:"values"`
+	IncludeUnmatched bool     `koanf:"include_unmatched"`
 }
 
 // Keybindings holds builtin and user keybinding layers.
@@ -225,6 +233,15 @@ func validate(cfg *Config) error {
 	}
 	if len(cfg.Tabs) > 9 {
 		return fmt.Errorf("config: at most 9 tabs allowed, got %d", len(cfg.Tabs))
+	}
+
+	for _, tab := range cfg.Tabs {
+		if tab.Sections.Enabled && tab.Sections.Field == "" {
+			return fmt.Errorf("config: tab sections 'field' empty")
+		}
+		if tab.Sections.Enabled && len(tab.Sections.Values) == 0 {
+			return fmt.Errorf("config: tab sections 'values' empty")
+		}
 	}
 
 	themeColors := map[string]string{

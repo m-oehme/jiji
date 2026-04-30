@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alecthomas/kong"
 	tea "charm.land/bubbletea/v2"
+	"github.com/alecthomas/kong"
 
 	"github.com/m-oehme/jiji/internal/app"
 	"github.com/m-oehme/jiji/internal/config"
@@ -68,6 +68,7 @@ func main() {
 		}()
 		logger = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		logger.Info("debug logging enabled", "path", logPath)
+		slog.SetDefault(logger)
 	} else {
 		logger = slog.New(slog.DiscardHandler)
 	}

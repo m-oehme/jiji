@@ -135,7 +135,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Async API results (ADR-010)
 	case SearchResultMsg:
 		m.ctx.Logger.Info("search results", "count", len(msg.Issues), "tab", msg.TabIndex)
-		m.issuepane.IssueList.SetItems(msg.Issues)
+		tab := m.ctx.Config.Tabs[msg.TabIndex]
+		m.issuepane.IssueList.SetItems(msg.Issues, tab.Sections)
 		m.statusBar.SetLoading(false)
 		m.statusBar.SetIssueCount(len(msg.Issues))
 
@@ -212,7 +213,8 @@ func (m *Model) switchTab(idx int) tea.Cmd {
 	m.issuepane.JqlSearch.SetJQL(jql)
 
 	if cached, ok := m.tabCache[idx]; ok {
-		m.issuepane.IssueList.SetItems(cached.Issues)
+		tab := m.ctx.Config.Tabs[idx]
+		m.issuepane.IssueList.SetItems(cached.Issues, tab.Sections)
 		m.issuepane.IssueList.Restore(cached.Cursor, cached.Offset)
 		m.statusBar.SetLoading(false)
 		m.statusBar.SetIssueCount(len(cached.Issues))
