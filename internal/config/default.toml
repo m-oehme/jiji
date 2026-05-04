@@ -14,14 +14,6 @@ list = ["key", "priority", "summary", "assignee"]
 name = "My Issues"
 jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC"
 
-# [[tabs]]
-# name = "All Issues"
-# jql = "project = MYPROJ ORDER BY updated DESC"
-
-# [[tabs]]
-# name = "Sprint"
-# jql = "sprint in openSprints() AND project = MYPROJ ORDER BY rank ASC"
-
 [keybindings.builtin]
 up = ["k", "up"]
 down = ["j", "down"]
@@ -41,6 +33,7 @@ labels = ["L"]
 summary = ["s"]
 edit = ["e"]
 refresh = ["r"]
+open = ["o"]
 
 #[[keybindings.user.global]]
 #key = "V"

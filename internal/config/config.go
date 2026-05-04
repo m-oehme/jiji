@@ -114,6 +114,7 @@ type BuiltinKeybindings struct {
 	Summary    []string `koanf:"summary"`
 	Edit       []string `koanf:"edit"`
 	Refresh    []string `koanf:"refresh"`
+	Open       []string `koanf:"open"`
 }
 
 // UserKeybinding holds custom user keybinding overrides.

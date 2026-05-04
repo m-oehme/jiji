@@ -2,7 +2,11 @@ package jira
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"text/template"
+
+	"github.com/m-oehme/jiji/internal/config"
 )
 
 func (m *Issue) Format(format string) (string, error) {
@@ -16,4 +20,9 @@ func (m *Issue) Format(format string) (string, error) {
 		return "", err
 	}
 	return buffer.String(), nil
+}
+
+func (m *Issue) IssueURL(config config.Config) string {
+	host := strings.Trim(config.Jira.Host, "/")
+	return fmt.Sprintf("%s/browse/%s", host, m.Key)
 }

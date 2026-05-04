@@ -99,6 +99,7 @@ func testConfig() *config.Config {
 				Summary:    []string{"s"},
 				Edit:       []string{"e"},
 				Refresh:    []string{"r"},
+				Open:       []string{"o"},
 			},
 		},
 		Theme: config.ThemeConfig{

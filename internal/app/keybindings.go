@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 
 	tea "charm.land/bubbletea/v2"
@@ -92,6 +93,13 @@ func (m Model) handleGlobalKey(key string) (tea.Model, tea.Cmd, bool) {
 		delete(m.tabCache, idx)
 		m.statusBar.SetLoading(true)
 		return m, m.searchIssues(jql, idx), true
+
+	case matchKey(key, m.ctx.Config.Keys.Builtin.Open):
+		issue := m.issuepane.IssueList.SelectedIssue()
+		if issue == nil {
+			return m, nil, true
+		}
+		return m, m.openInBrowser(issue.IssueURL(*m.ctx.Config)), true
 
 	case matchKey(key, m.ctx.Config.Keys.Builtin.PaneSwitch):
 		m.focus.TogglePane()
@@ -242,4 +250,31 @@ func (m *Model) executeShellCommand(cmd string) tea.Cmd {
 		}
 		return nil
 	})
+}
+
+func (m *Model) openInBrowser(url string) tea.Cmd {
+	var c *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		c = exec.Command("open", url)
+	case "linux":
+		c = exec.Command("xdg-open", url)
+	default:
+		return func() tea.Msg {
+			return ErrorMsg{
+				Context: "unsupported OS",
+			}
+		}
+	}
+
+	return func() tea.Msg {
+		err := c.Run()
+		if err != nil {
+			return ErrorMsg{
+				Err:     err,
+				Context: "Unable to open url",
+			}
+		}
+		return nil
+	}
 }
