@@ -51,7 +51,7 @@ func (m *Model) SelectedIssue() *jira.Issue {
 	if len(m.issues) == 0 || m.cursor < 0 || m.cursor >= len(m.issues) {
 		return nil
 	}
-	return &m.issues[m.cursor]
+	return m.rows[m.cursor].Issue
 }
 
 // SelectedIndex returns the cursor position.
